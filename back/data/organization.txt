@@ -1,0 +1,2 @@
+department：{superior department：below department：create_data：functionary：role：}
+总部：{superior department：无：below department：无：create_data：2026-01-01：functionary：总经理：role：0：}

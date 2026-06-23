@@ -1,0 +1,11 @@
+{
+  "name": "ruoyi-front",
+  "version": "1.0.0",
+  "description": "若依前端项目 - 智能工作流平台",
+  "scripts": {
+    "start": "npx serve . -p 8080"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}

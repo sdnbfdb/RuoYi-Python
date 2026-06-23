@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能工作流平台</title>
+<link href="https://static.mastergo.com/static/ai/resource/html/googleapis/css2" rel="stylesheet">
+<script src="https://static.mastergo.com/static/ai/resource/html/tailwind/tailwind.js"></script>
+<script>
+tailwind.config={
+theme:{
+extend:{
+colors:{
+primary: '#3B82F6',
+secondary: '#60A5FA'
+},
+borderRadius:{
+'none':'0px',
+'sm':'2px',
+DEFAULT:'4px',
+'md':'8px',
+'lg':'12px',
+'xl':'16px',
+'2xl':'20px',
+'3xl':'24px',
+'full':'9999px',
+'button':'4px'
+}
+}
+}
+}
+</script>
+<style>
+body {
+min-height: 1024px;
+font-family: 'Inter', sans-serif;
+}
+.hero-bg {
+background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+#userCarousel {
+transform: translateX(0);
+}
+</style>
+<script>
+let currentSlide = 0;
+function switchSlide(slideIndex) {
+currentSlide = slideIndex;
+const carousel = document.getElementById('userCarousel');
+carousel.style.transform = `translateX(-${currentSlide * 100}%)`;
+}
+function nextSlide() {
+const totalSlides = document.querySelectorAll('#userCarousel > div').length;
+currentSlide = (currentSlide + 1) % totalSlides;
+const carousel = document.getElementById('userCarousel');
+carousel.style.transform = `translateX(-${currentSlide * 100}%)`;
+}
+setInterval(nextSlide, 5000);
+</script>
+</head>
+<body class="bg-white">
+<!-- Navigation -->
+<nav class="bg-white border-b border-gray-200 px-8 py-4">
+<div class="flex items-center justify-between max-w-7xl mx-auto">
+<div class="flex items-center space-x-10">
+<div class="text-2xl font-['Pacifico'] text-gray-800">logo</div>
+<div class="flex space-x-8">
+<a href="index.html" class="text-primary hover:text-blue-700 font-medium">首页</a>
+<a href="agent.html" class="text-gray-600 hover:text-gray-900 font-medium">智能体</a>
+<a href="knowledge.html" class="text-gray-600 hover:text-gray-900 font-medium">知识库</a>
+<a href="operation.html" class="text-gray-600 hover:text-gray-900 font-medium">操作</a>
+<a href="my.html" class="text-gray-600 hover:text-gray-900 font-medium">用户</a>
+</div>
+</div>
+<div id="auth-section" class="flex items-center space-x-4">
+<a href="login.html" class="text-gray-600 hover:text-gray-900 font-medium">登录</a>
+<a href="register.html" class="bg-blue-600 text-white px-4 py-2 rounded-button hover:bg-blue-700 transition-colors">注册</a>
+</div>
+</div>
+</nav>
+<!-- Hero Section -->
+<section class="hero-bg py-20">
+<div class="max-w-7xl mx-auto px-8">
+<div class="space-y-6">
+<h1 class="text-5xl font-bold text-gray-900 leading-tight">
+构建您的智能工作流
+</h1>
+<p class="text-xl text-gray-600 leading-relaxed">
+通过先进的 AI 智能体技术，自动化您的业务流程，提升工作效率，释放团队潜力。
+</p>
+<div class="flex space-x-4 pt-4">
+<button class="bg-blue-600 text-white px-6 py-3 rounded-button whitespace-nowrap hover:bg-blue-700 transition-colors">
+开始使用
+</button>
+<button class="border border-gray-300 text-gray-700 px-6 py-3 rounded-button whitespace-nowrap hover:bg-gray-50 transition-colors">
+查看演示
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- User Carousel Section -->
+<section class="py-16 bg-white">
+<div class="max-w-7xl mx-auto px-8">
+<div class="text-center mb-12">
+<h2 class="text-4xl font-bold text-gray-900 mb-4">我们的用户</h2>
+<p class="text-xl text-gray-600">众多企业信赖我们的智能工作流平台</p>
+</div>
+<div class="relative">
+<div class="overflow-hidden">
+<div class="flex transition-transform duration-500 ease-in-out" id="userCarousel">
+<div class="flex-shrink-0 w-full">
+<div class="grid grid-cols-5 gap-8">
+<div class="text-center">
+<div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-lg font-bold">
+TW
+</div>
+<h3 class="text-lg font-semibold text-gray-900">王涛</h3>
+<p class="text-gray-600">技术经理</p>
+</div>
+<div class="text-center">
+<div class="w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-lg font-bold">
+LS
+</div>
+<h3 class="text-lg font-semibold text-gray-900">苏丽</h3>
+<p class="text-gray-600">运营总监</p>
+</div>
+<div class="text-center">
+<div class="w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-lg font-bold">
+ZJ
+</div>
+<h3 class="text-lg font-semibold text-gray-900">周杰</h3>
+<p class="text-gray-600">项目经理</p>
+</div>
+<div class="text-center">
+<div class="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-lg font-bold">
+FL
+</div>
+<h3 class="text-lg font-semibold text-gray-900">李芳</h3>
+<p class="text-gray-600">财务主管</p>
+</div>
+<div class="text-center">
+<div class="w-20 h-20 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-lg font-bold">
+XW
+</div>
+<h3 class="text-lg font-semibold text-gray-900">王晓</h3>
+<p class="text-gray-600">人事专员</p>
+</div>
+</div>
+</div>
+<div class="flex-shrink-0 w-full">
+<div class="grid grid-cols-5 gap-8">
+<div class="text-center">
+<div class="w-20 h-20 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-lg font-bold">
+YC
+</div>
+<h3 class="text-lg font-semibold text-gray-900">陈勇</h3>
+<p class="text-gray-600">销售经理</p>
+</div>
+<div class="text-center">
+<div class="w-20 h-20 bg-gradient-to-br from-pink-400 to-pink-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-lg font-bold">
+LH
+</div>
+<h3 class="text-lg font-semibold text-gray-900">黄磊</h3>
+<p class="text-gray-600">市场主管</p>
+</div>
+<div class="text-center">
+<div class="w-20 h-20 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-lg font-bold">
+ZW
+</div>
+<h3 class="text-lg font-semibold text-gray-900">吴哲</h3>
+<p class="text-gray-600">研发工程师</p>
+</div>
+<div class="text-center">
+<div class="w-20 h-20 bg-gradient-to-br from-lime-400 to-lime-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-lg font-bold">
+MY
+</div>
+<h3 class="text-lg font-semibold text-gray-900">叶萌</h3>
+<p class="text-gray-600">产品经理</p>
+</div>
+<div class="text-center">
+<div class="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-lg font-bold">
+GQ
+</div>
+<h3 class="text-lg font-semibold text-gray-900">钱刚</h3>
+<p class="text-gray-600">IT主管</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex justify-center mt-8 space-x-2">
+<button class="w-3 h-3 rounded-full bg-gray-300 hover:bg-blue-600" onclick="switchSlide(0)"></button>
+<button class="w-3 h-3 rounded-full bg-gray-300 hover:bg-blue-600" onclick="switchSlide(1)"></button>
+</div>
+</div>
+</div>
+</section>
+<!-- News Section -->
+<section class="py-16 bg-gray-50">
+<div class="max-w-7xl mx-auto px-8">
+<div class="text-center mb-12">
+<h2 class="text-4xl font-bold text-gray-900 mb-4">最新资讯</h2>
+<p class="text-xl text-gray-600">了解我们的最新动态和行业资讯</p>
+</div>
+<div class="grid grid-cols-3 gap-8">
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+<div class="mb-4">
+<img src="https://static.mastergo.com/ai/img_res/1778464222149a3K9mP2xQ7vN4rT8wY.jpg"
+alt="AI Technology News" class="w-full h-40 object-cover rounded-xl">
+</div>
+<h3 class="text-xl font-semibold text-gray-900 mb-2">AI技术引领未来工作模式</h3>
+<p class="text-gray-600 mb-4">人工智能技术正在改变传统工作方式，提升办公效率和创新力。</p>
+<div class="flex justify-between items-center">
+<span class="text-sm text-gray-500">2024-01-15</span>
+<a href="#" class="text-blue-600 hover:text-blue-700 font-medium">阅读更多</a>
+</div>
+</div>
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+<div class="mb-4">
+<img src="https://static.mastergo.com/ai/img_res/1778464222149b4L8nR5wS9xP2qT7yZ.jpg"
+alt="Workflow Automation" class="w-full h-40 object-cover rounded-xl">
+</div>
+<h3 class="text-xl font-semibold text-gray-900 mb-2">工作流自动化趋势解析</h3>
+<p class="text-gray-600 mb-4">随着数字化转型加速，工作流自动化成为企业发展的关键驱动力。</p>
+<div class="flex justify-between items-center">
+<span class="text-sm text-gray-500">2024-01-14</span>
+<a href="#" class="text-blue-600 hover:text-blue-700 font-medium">阅读更多</a>
+</div>
+</div>
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+<div class="mb-4">
+<img src="https://static.mastergo.com/ai/img_res/1778464222149c5M9oQ6xR0yA3rU8zB.jpg"
+alt="Team Collaboration" class="w-full h-40 object-cover rounded-xl">
+</div>
+<h3 class="text-xl font-semibold text-gray-900 mb-2">团队协作的最佳实践</h3>
+<p class="text-gray-600 mb-4">高效的团队协作是实现项目目标的关键因素，我们分享了一些实用技巧。</p>
+<div class="flex justify-between items-center">
+<span class="text-sm text-gray-500">2024-01-13</span>
+<a href="#" class="text-blue-600 hover:text-blue-700 font-medium">阅读更多</a>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Users Section -->
+<section class="py-20">
+<div class="max-w-7xl mx-auto px-8">
+<div class="text-center mb-12">
+<h2 class="text-4xl font-bold text-gray-900 mb-4">我们的团队</h2>
+<p class="text-xl text-gray-600">专业团队为您提供全方位的技术支持</p>
+</div>
+<div class="grid grid-cols-4 gap-8">
+<div class="text-center">
+<div class="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold">
+ZW
+</div>
+<h3 class="text-lg font-semibold text-gray-900">张伟</h3>
+<p class="text-gray-600">产品经理</p>
+</div>
+<div class="text-center">
+<div class="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold">
+LL
+</div>
+<h3 class="text-lg font-semibold text-gray-900">李莉</h3>
+<p class="text-gray-600">技术总监</p>
+</div>
+<div class="text-center">
+<div class="w-24 h-24 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold">
+CW
+</div>
+<h3 class="text-lg font-semibold text-gray-900">陈伟</h3>
+<p class="text-gray-600">首席工程师</p>
+</div>
+<div class="text-center">
+<div class="w-24 h-24 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-2xl font-bold">
+YM
+</div>
+<h3 class="text-lg font-semibold text-gray-900">杨敏</h3>
+<p class="text-gray-600">用户体验师</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="bg-gray-900 text-white py-16">
+<div class="max-w-7xl mx-auto px-8">
+<div class="grid grid-cols-4 gap-8">
+<div>
+<div class="text-2xl font-['Pacifico'] text-white mb-4">logo</div>
+<p class="text-gray-400">构建智能化的工作流程，释放团队无限潜能。</p>
+</div>
+<div>
+<h4 class="font-semibold mb-4">产品</h4>
+<ul class="space-y-2 text-gray-400">
+<li><a href="#" class="hover:text-white transition-colors">智能体市场</a></li>
+<li><a href="#" class="hover:text-white transition-colors">工作流设计器</a></li>
+<li><a href="#" class="hover:text-white transition-colors">API 接口</a></li>
+<li><a href="#" class="hover:text-white transition-colors">集成服务</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-semibold mb-4">资源</h4>
+<ul class="space-y-2 text-gray-400">
+<li><a href="#" class="hover:text-white transition-colors">文档中心</a></li>
+<li><a href="#" class="hover:text-white transition-colors">教程指南</a></li>
+<li><a href="#" class="hover:text-white transition-colors">社区论坛</a></li>
+<li><a href="#" class="hover:text-white transition-colors">案例研究</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-semibold mb-4">公司</h4>
+<ul class="space-y-2 text-gray-400">
+<li><a href="#" class="hover:text-white transition-colors">关于我们</a></li>
+<li><a href="#" class="hover:text-white transition-colors">招聘信息</a></li>
+<li><a href="#" class="hover:text-white transition-colors">联系方式</a></li>
+<li><a href="#" class="hover:text-white transition-colors">隐私政策</a></li>
+</ul>
+</div>
+</div>
+<div class="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
+<p>&copy; 2024 智能工作流平台. 保留所有权利.</p>
+</div>
+</div>
+</footer>
+</body>
+</html>

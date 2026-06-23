@@ -1,0 +1,2164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能体页面</title>
+<link href="https://static.mastergo.com/static/ai/resource/html/googleapis/css2" rel="stylesheet">
+<link rel="stylesheet" href="https://static.mastergo.com/static/ai/resource/html/font-awesome/css/all.min.css">
+<script src="https://static.mastergo.com/static/ai/resource/html/tailwind/tailwind.js"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#3B82F6',secondary:'#6B7280'},borderRadius:{'none':'0px','sm':'2px',DEFAULT:'4px','md':'8px','lg':'12px','xl':'16px','2xl':'20px','3xl':'24px','full':'9999px','button':'4px'}}}}</script>
+<script src="auth.js"></script>
+<style>
+body {
+height: 100vh;
+overflow: hidden;
+font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.search-input:focus {
+outline: none;
+box-shadow: none;
+}
+.agent-card:hover {
+transform: translateY(-4px);
+transition: transform 0.2s ease;
+}
+.chat-container {
+width: 100%;
+padding: 2rem 0;
+}
+.message-input {
+border: 1px solid #E5E7EB;
+border-radius: 12px;
+background-color: #F9FAFB;
+}
+.message-input:focus-within {
+border-color: #3B82F6;
+box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+.suggestion-card {
+background-color: #F9FAFB;
+border: 1px solid #E5E7EB;
+transition: all 0.2s ease;
+}
+.suggestion-card:hover {
+background-color: #F3F4F6;
+border-color: #D1D5DB;
+transform: translateY(-2px);
+}
+.quick-action {
+background-color: #F9FAFB;
+border: 1px solid #E5E7EB;
+transition: all 0.2s ease;
+}
+.quick-action:hover {
+background-color: #F3F4F6;
+border-color: #D1D5DB;
+}
+/* Markdown 渲染样式 */
+.markdown-content { line-height: 1.8; }
+.markdown-content h1 { font-size: 1.5rem; font-weight: bold; margin: 1rem 0 0.5rem; }
+.markdown-content h2 { font-size: 1.3rem; font-weight: bold; margin: 0.8rem 0 0.4rem; }
+.markdown-content h3 { font-size: 1.1rem; font-weight: bold; margin: 0.6rem 0 0.3rem; }
+.markdown-content h4 { font-size: 1rem; font-weight: bold; margin: 0.5rem 0 0.2rem; }
+.markdown-content p { margin: 0.3rem 0; }
+.markdown-content ul, .markdown-content ol { margin: 0.5rem 0; padding-left: 1.5rem; }
+.markdown-content li { margin: 0.2rem 0; }
+.markdown-content hr { border: none; border-top: 1px solid #ccc; margin: 0.8rem 0; }
+.markdown-content strong { font-weight: bold; }
+.markdown-content em { font-style: italic; }
+.markdown-content code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; }
+.markdown-content a.md-link { color: #2563eb; text-decoration: underline; }
+.bg-blue-500 .markdown-content a.md-link { color: #bfdbfe; }
+/* 数据表格样式 */
+.table-wrapper { overflow: auto; max-height: 280px; max-width: 100%; }
+.data-table { border-collapse: collapse; width: 100%; margin: 0; font-size: 0.8rem; }
+.data-table th, .data-table td { border: 1px solid #ddd; padding: 3px 6px; text-align: left; white-space: nowrap; }
+.data-table th { background: #f0f0f0; font-weight: bold; }
+.data-table tr:nth-child(even) { background: #f9f9f9; }
+/* 用户消息蓝色气泡中的表格适配 */
+.bg-blue-500 .data-table th, .bg-blue-500 .data-table td { border-color: rgba(255,255,255,0.3); color: #fff; }
+.bg-blue-500 .data-table th { background: rgba(255,255,255,0.2); }
+.bg-blue-500 .data-table tr:nth-child(even) { background: rgba(255,255,255,0.05); }
+.bg-blue-500 .table-wrapper::-webkit-scrollbar { width: 6px; height: 6px; }
+.bg-blue-500 .table-wrapper::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+.bg-blue-500 .markdown-content h1, .bg-blue-500 .markdown-content h2, .bg-blue-500 .markdown-content h3, .bg-blue-500 .markdown-content h4 { color: #fff; }
+.bg-blue-500 .markdown-content hr { border-top-color: rgba(255,255,255,0.3); }
+.bg-blue-500 .markdown-content code { background: rgba(255,255,255,0.2); color: #fff; }
+/* 图表容器样式 - 支持滚动和缩放 */
+.image-container-wrapper {
+    position: relative;
+    margin: 1rem 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.image-container {
+    width: 100%;
+    max-height: 500px;
+    overflow: auto;
+    background-color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+.image-container img.chart-image {
+    max-width: none;
+    width: 100%;
+    height: auto;
+    transition: width 0.2s ease;
+}
+.image-controls {
+    position: sticky;
+    top: 0;
+    right: 0;
+    float: right;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 4px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+}
+.zoom-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: #f0f0f0;
+    color: #333;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+.zoom-btn:hover {
+    background: #3B82F6;
+    color: #fff;
+}
+/* 蓝色气泡中的图表适配 */
+.bg-blue-500 .image-container-wrapper {
+    border-color: rgba(255,255,255,0.3);
+}
+.bg-blue-500 .image-container {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+.bg-blue-500 .image-controls {
+    background: rgba(59, 130, 246, 0.95);
+}
+.bg-blue-500 .zoom-btn {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+}
+.bg-blue-500 .zoom-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+</style>
+<script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+window.qrCodeReady = false;
+function checkQRCodeLib() {
+    if (typeof QRCode !== 'undefined') {
+        window.qrCodeReady = true;
+        console.log('qrcode.js 加载成功');
+    } else if (typeof qrcode !== 'undefined') {
+        window.QRCode = qrcode;
+        window.qrCodeReady = true;
+        console.log('qrcode.js (小写) 加载成功');
+    } else {
+        console.warn('qrcode.js 未加载，将使用备用方案');
+        window.qrCodeReady = false;
+    }
+}
+// 延迟检查库是否加载
+setTimeout(checkQRCodeLib, 1000);
+</script>
+</head>
+<body class="bg-white">
+<!-- Navigation Bar -->
+<div id="nav-container"></div>
+<script>
+fetch('nav.html')
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById('nav-container').innerHTML = data;
+    });
+</script>
+<!-- Main Content -->
+<main class="h-[calc(100vh-64px)]">
+<div class="flex h-full">
+<!-- Left Sidebar Toggle Button -->
+<button id="toggleLeftSidebarBtn" class="fixed left-4 top-24 w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full shadow flex items-center justify-center z-40 transition-transform hover:scale-110" title="展开历史记录">
+<i class="fas fa-history"></i>
+</button>
+<!-- Left Sidebar - History -->
+<div id="leftSidebar" class="w-0 flex-shrink-0 h-full bg-gray-50 border-r border-gray-200 transition-all duration-300 overflow-hidden">
+<div class="p-4 h-full overflow-y-auto">
+<h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+<i class="fas fa-history mr-2 text-blue-500"></i>历史记录
+</h3>
+<button id="newChatBtn" class="w-full mb-4 py-2 text-sm text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+<i class="fas fa-plus mr-1"></i>新建对话
+</button>
+<div id="historyList" class="space-y-2">
+<div class="text-gray-400 text-sm text-center py-8">
+暂无历史记录
+</div>
+</div>
+</div>
+</div>
+<!-- Chat Interface -->
+<div id="chatMainArea" class="flex-1 h-full flex flex-col">
+<div class="chat-container h-full flex flex-col">
+<!-- Chat Messages Area (可滚动) -->
+<div id="chatMessages" class="flex-1 overflow-y-auto mb-4 min-h-0 px-8">
+<!-- Welcome Message -->
+<div id="welcomeSection" class="text-center mb-8 flex-shrink-0">
+<h1 class="text-3xl font-bold text-gray-900 mb-4">你好，我是RYagent</h1>
+<p class="text-gray-600 text-base">我可以帮你解答各种问题，提供信息和帮助</p>
+</div>
+<!-- Suggestion Cards Grid -->
+<div id="suggestionSection" class="flex-shrink-0">
+<div class="flex justify-between items-center mb-4">
+<div class="text-gray-600 text-sm">点击卡片快速提问</div>
+<button id="refreshQuestions" class="text-blue-500 hover:text-blue-600 text-sm font-medium transition-colors">
+<i class="fas fa-sync-alt mr-1"></i>换一批
+</button>
+</div>
+<div id="suggestionGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+</div>
+</div>
+<div id="messageList"></div>
+</div>
+<div id="imagePreview" class="mb-4 hidden flex-shrink-0">
+<div class="flex items-center">
+<span class="text-sm text-gray-500 mr-2">图片预览:</span>
+<img id="previewImage" src="" alt="预览" class="max-w-xs max-h-24 rounded-lg border">
+<button id="removeImageBtn" class="ml-2 text-red-500 hover:text-red-600" title="移除图片">
+<i class="fas fa-times-circle"></i>
+</button>
+</div>
+</div>
+<div class="message-input p-4 relative flex-shrink-0">
+<div class="flex items-center">
+<input type="file" id="fileUpload" accept=".txt,.csv,.json" class="hidden">
+<input type="file" id="dataFileUpload" accept=".csv,.json,.xlsx,.xls" class="hidden">
+<input type="file" id="pngFileUpload" accept="image/*" class="hidden">
+<input type="file" id="textFileUpload" accept=".txt" class="hidden">
+<button id="fileUploadBtn" class="mr-3 w-10 h-10 flex items-center justify-center text-gray-500 hover:text-blue-500 hover:bg-gray-100 rounded-lg transition-all" title="上传文件">
+<i class="fas fa-file-text w-5 h-5"></i>
+</button>
+<input
+type="text"
+id="messageInput"
+placeholder="发消息..."
+class="flex-1 bg-transparent border-none outline-none text-gray-800 placeholder-gray-500 text-base"
+>
+<button id="sendBtn" class="ml-4 w-10 h-10 flex items-center justify-center text-blue-500 hover:bg-blue-100 rounded-lg transition-all" title="发送">
+<i class="fas fa-paper-plane w-5 h-5"></i>
+</button>
+<button id="addToKnowledgeBtn" class="ml-1 text-gray-500 hover:text-blue-500 transition-colors" title="添加到知识库">
+<i class="fas fa-book w-6 h-6 flex items-center justify-center"></i>
+</button>
+</div>
+<!-- @ Mention Popup -->
+<div id="mentionPopup" class="hidden absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg border border-gray-200 py-2 w-48 z-50">
+<div class="px-3 py-2 text-xs text-gray-400 font-medium">选择功能</div>
+<div class="mention-option px-4 py-2 hover:bg-blue-50 cursor-pointer flex items-center text-sm text-gray-700" data-value="个人助手">
+<i class="fas fa-user-circle mr-2 text-blue-500"></i>个人助手
+</div>
+<div class="mention-option px-4 py-2 hover:bg-blue-50 cursor-pointer flex items-center text-sm text-gray-700" data-value="知识库">
+<i class="fas fa-book mr-2 text-green-500"></i>知识库
+</div>
+<div class="mention-option px-4 py-2 hover:bg-blue-50 cursor-pointer flex items-center text-sm text-gray-700" data-value="联网搜索">
+<i class="fas fa-globe mr-2 text-purple-500"></i>联网搜索
+</div>
+<div class="mention-option px-4 py-2 hover:bg-blue-50 cursor-pointer flex items-center text-sm text-gray-700" data-value="组织管理">
+<i class="fas fa-sitemap mr-2 text-orange-500"></i>组织管理
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Sidebar Toggle Button -->
+<button id="toggleRightSidebarBtn" class="fixed right-4 top-24 w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center z-40 transition-transform hover:scale-110" title="展开手机连接">
+<i class="fas fa-mobile-alt"></i>
+</button>
+<!-- Right Sidebar - QR Code Connection -->
+<div id="rightSidebar" class="w-0 flex-shrink-0 h-full bg-gray-50 border-l border-gray-200 transition-all duration-300 overflow-hidden">
+<div class="p-4 h-full overflow-y-auto">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-lg font-semibold text-gray-800 flex items-center">
+<i class="fas fa-mobile-alt mr-2 text-blue-500"></i>手机连接
+</h3>
+<button id="collapseRightBtn" class="text-gray-400 hover:text-gray-600 transition-colors">
+<i class="fas fa-chevron-right"></i>
+</button>
+</div>
+<!-- QR Code Area -->
+<div id="qrCodeArea" class="mb-6">
+<div class="bg-white rounded-lg p-4 text-center">
+<img id="qrCodeImg" class="mx-auto mb-2" style="width:128px;height:128px;display:none;">
+<canvas id="qrCodeCanvas" width="128" height="128" class="mx-auto mb-2"></canvas>
+<p class="text-xs text-gray-500 mb-1">扫码连接手机</p>
+<p id="currentUrl" class="text-xs text-gray-400 break-all"></p>
+</div>
+</div>
+<!-- Connected User Info -->
+<div id="connectedUserInfo" class="hidden mb-4">
+<div class="bg-green-50 border border-green-200 rounded-lg p-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center">
+<i class="fas fa-check-circle text-green-500 mr-2"></i>
+<span id="connectedUsername" class="text-sm font-medium text-green-700"></span>
+</div>
+<button id="disconnectBtn" class="text-xs text-red-500 hover:text-red-600">断开</button>
+</div>
+</div>
+</div>
+<!-- Drop Zone -->
+<div id="dropZone" class="mb-4">
+<div id="dropZoneEmpty" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center transition-colors hover:border-blue-400 hover:bg-blue-50">
+<i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+<p class="text-sm text-gray-500">拖拽文件到此处</p>
+<p class="text-xs text-gray-400 mt-1">或点击添加内容</p>
+</div>
+<div id="cardsContainer" class="space-y-2 hidden"></div>
+</div>
+<!-- Format Options -->
+<div class="mb-4">
+<p class="text-xs text-gray-500 mb-2">发送格式:</p>
+<div class="flex gap-2">
+<label class="flex items-center text-xs text-gray-600 cursor-pointer">
+<input type="checkbox" name="outputFormat" value="formatted" checked class="mr-1">
+保持格式
+</label>
+<label class="flex items-center text-xs text-gray-600 cursor-pointer">
+<input type="checkbox" name="outputFormat" value="document" class="mr-1">
+文档形式
+</label>
+</div>
+</div>
+<!-- Send Button -->
+<button id="sendRightBtn" class="w-full py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center">
+<i class="fas fa-paper-plane mr-2"></i>发送给手机
+</button>
+</div>
+</div>
+</div>
+</main>
+
+<!-- Image Lightbox -->
+<div id="imageLightbox" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden cursor-zoom-out" onclick="closeImageLightbox()">
+<img id="lightboxImg" src="" class="max-w-[90%] max-h-[90%] rounded-lg shadow-2xl">
+</div>
+
+<!-- QR Upload Modal (手机扫码上传文件到电脑) -->
+<div id="qrUploadModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+<div class="bg-white rounded-xl p-6 w-80 shadow-2xl text-center">
+<h3 class="text-lg font-semibold text-gray-800 mb-4">手机扫码上传</h3>
+<p class="text-xs text-gray-500 mb-3">用手机扫描二维码，选择文件上传到电脑</p>
+<img id="qrUploadImg" class="mx-auto mb-3" style="width:180px;height:180px;display:none;">
+<canvas id="qrUploadCanvas" width="180" height="180" class="mx-auto mb-3"></canvas>
+<p id="qrUploadUrl" class="text-xs text-gray-400 break-all mb-4"></p>
+<div id="qrUploadStatus" class="hidden mb-3">
+<div class="bg-green-50 border border-green-200 rounded-lg p-2 text-sm text-green-700">
+<i class="fas fa-check-circle mr-1"></i><span id="qrUploadStatusText">文件已上传</span>
+</div>
+</div>
+<button id="closeQrUploadModal" class="w-full py-2 text-gray-500 hover:text-gray-700 transition-colors">关闭</button>
+</div>
+</div>
+
+<!-- File Upload Modal -->
+<div id="fileUploadModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+<div class="bg-white rounded-xl p-6 w-80 shadow-2xl">
+<h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">选择文件类型</h3>
+<div class="space-y-3">
+<button id="dataFileBtn" class="w-full py-3 px-4 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center justify-center">
+<i class="fas fa-database mr-2 text-blue-500"></i>
+<span class="text-gray-700">数据文件</span>
+</button>
+<button id="pngFileBtn" class="w-full py-3 px-4 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center justify-center">
+<i class="fas fa-image mr-2 text-green-500"></i>
+<span class="text-gray-700">PNG文件</span>
+</button>
+<button id="textFileBtn" class="w-full py-3 px-4 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center justify-center">
+<i class="fas fa-file-text mr-2 text-orange-500"></i>
+<span class="text-gray-700">文本文件</span>
+</button>
+<button id="qrUploadBtn" class="w-full py-3 px-4 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center justify-center">
+<i class="fas fa-qrcode mr-2 text-purple-500"></i>
+<span class="text-gray-700">扫描上传</span>
+</button>
+</div>
+<button id="closeModalBtn" class="w-full mt-4 py-2 text-gray-500 hover:text-gray-700 transition-colors">
+取消
+</button>
+</div>
+</div>
+
+
+<script>
+// 煤矿问题库
+const coalMineQuestions = [
+"煤矿井下如何预防瓦斯爆炸？",
+"煤矿透水事故发生前有哪些征兆？",
+"煤矿工人下井前必须做哪些安全检查？",
+"如何正确使用煤矿自救器？",
+"煤矿井下火灾如何快速处置？",
+"煤矿冒顶事故的预防措施有哪些？",
+"什么是煤矿瓦斯超限作业？",
+"煤矿井下为什么不能携带手机？",
+"煤矿冲击地压如何有效防治？",
+"煤矿煤尘爆炸的条件是什么？",
+"如何辨别真假煤矿自救器？",
+"煤矿井下电气设备如何防爆？",
+"煤矿通风系统不完善有哪些危害？",
+"煤矿井下硫化氢气体如何检测？",
+"煤矿超能力生产有哪些安全隐患？",
+"煤矿井下为什么要严禁明火？",
+"煤矿采空区如何防止自然发火？",
+"煤矿井下人员定位系统有什么作用？",
+"煤矿安全监控系统多久检查一次？",
+"煤矿井下放炮作业有哪些安全规定？",
+"煤矿顶板事故发生时如何自救？",
+"煤矿高瓦斯矿井有哪些特殊要求？",
+"煤矿井下为什么要设置避难硐室？",
+"煤矿透水事故被困后如何延长生存时间？",
+"煤矿井下风速有什么标准要求？",
+"煤矿煤与瓦斯突出有哪些预兆？",
+"煤矿井下如何防止触电事故？",
+"煤矿重大事故隐患有哪些类型？",
+"煤矿井下为什么不能穿化纤衣服？",
+"煤矿瓦斯抽采系统如何维护？",
+"煤矿井下运输事故如何预防？",
+"煤矿掘进工作面如何进行超前支护？",
+"煤矿井下氧气浓度低于多少不能作业？",
+"煤矿为什么要实行双回路供电？",
+"煤矿井下粉尘如何有效治理？",
+"煤矿井下一氧化碳浓度超标怎么办？",
+"煤矿超层越界开采有什么危害？",
+"煤矿井下爆破后多久才能进入工作面？",
+"煤矿井下如何防止机械伤害？",
+"煤矿安全培训多久进行一次？",
+"煤矿井下为什么要定期进行瓦斯检测？",
+"煤矿井下发生火灾时如何正确逃生？",
+"煤矿顶板离层仪如何使用？",
+"煤矿井下积水区如何安全通过？",
+"煤矿井下使用的设备必须有什么标志？",
+"煤矿井下为什么要设置风门？",
+"煤矿瓦斯爆炸的三个条件是什么？",
+"煤矿井下如何防止跑车事故？",
+"煤矿井下作业时为什么必须佩戴安全帽？",
+"煤矿井下有毒有害气体有哪些？",
+"煤矿井下为什么不能随意拆卸矿灯？",
+"煤矿井下综采工作面有哪些安全风险？",
+"煤矿井下掘进工作面如何通风？",
+"煤矿井下发生事故后如何报告？",
+"煤矿井下为什么要严禁酒后下井？",
+"煤矿井下如何防止物体打击事故？",
+"煤矿井下密闭墙有什么作用？",
+"煤矿井下为什么要进行探放水？",
+"煤矿井下作业人员必须具备哪些证件？",
+"煤矿井下为什么要保持逃生通道畅通？",
+"煤矿综采工作面如何提高回采率？",
+"煤矿掘进机常见故障有哪些？怎么维修？",
+"煤矿瓦斯抽采技术有哪几种？",
+"如何选择合适的煤矿支护设备？",
+"煤矿采煤机的工作原理是什么？",
+"煤矿皮带输送机如何日常维护？",
+"煤矿井下水泵如何选型？",
+"煤矿综掘工作面如何提高掘进速度？",
+"煤矿液压支架常见故障怎么处理？",
+"煤矿井下通风机如何节能运行？",
+"煤矿煤层注水防尘技术如何实施？",
+"煤矿井下防爆电气设备如何检修？",
+"煤矿放顶煤开采技术有什么优缺点？",
+"煤矿井下运输系统如何优化？",
+"煤矿瓦斯监测传感器如何校准？",
+"煤矿井下钻机有哪些类型？",
+"煤矿井下照明系统如何设计？",
+"煤矿井下通信系统有哪些方式？",
+"煤矿洗煤厂的工艺流程是什么？",
+"煤矿井下压风系统有什么作用？",
+"煤矿井下排水系统如何布置？",
+"煤矿井下刮板输送机如何安装？",
+"煤矿井下提升机如何安全运行？",
+"煤矿井下锚杆支护技术如何应用？",
+"煤矿井下喷雾降尘系统如何设计？",
+"煤矿井下瓦斯抽采钻孔如何施工？",
+"煤矿井下综采工作面如何搬家倒面？",
+"煤矿井下电气设备如何接地？",
+"煤矿井下矿用电缆如何选型？",
+"煤矿井下自动化控制系统有哪些功能？",
+"未来5年煤矿行业会迎来哪些变革？",
+"国家对煤矿行业的最新政策有哪些？",
+"中小煤矿未来的发展出路在哪里？",
+"煤矿行业如何实现绿色低碳转型？",
+"煤矿产能核增需要哪些条件？",
+"煤矿关闭退出有哪些补偿政策？",
+"煤矿安全生产条例有哪些新规定？",
+"煤矿智能化建设的国家目标是什么？",
+"煤炭清洁高效利用有哪些途径？",
+"煤矿行业如何应对能源转型挑战？",
+"煤矿矿区总体规划如何编制？",
+"煤矿安全生产许可证如何办理？",
+"煤矿行业准入条件有哪些？",
+"煤矿税费政策有哪些调整？",
+"煤矿行业如何保障能源安全？",
+"煤矿与新能源如何协同发展？",
+"煤矿行业人才短缺问题如何解决？",
+"煤矿企业如何进行安全生产标准化建设？",
+"煤矿行业如何提高产业集中度？",
+"煤矿资源整合有哪些模式？",
+"煤矿行业如何应对国际煤炭市场波动？",
+"煤矿井下作业人员数量有什么限制？",
+"煤矿行业如何推动技术创新？",
+"煤矿企业如何落实安全生产主体责任？",
+"煤矿行业如何实现高质量发展？",
+"煤矿工人每天工作几小时才算合规？",
+"煤矿工人如何保护自己的听力？",
+"煤矿工人退休年龄是多少岁？",
+"做煤矿工人一个月能挣多少钱？",
+"煤矿工人如何预防尘肺病？",
+"煤矿工人的工伤保险如何缴纳？",
+"煤矿工人下井前为什么要开班前会？",
+"煤矿工人的职业健康检查多久做一次？",
+"煤矿工人如何缓解工作压力？",
+"煤矿工人子女有哪些教育优惠政策？",
+"煤矿工人的住房公积金如何提取？",
+"煤矿工人如何提高自己的技能水平？",
+"煤矿工人的井下津贴标准是多少？",
+"煤矿工人发生工伤后如何维权？",
+"煤矿工人的职业病有哪些？",
+"煤矿工人如何保持身体健康？",
+"煤矿工人的年假有多少天？",
+"煤矿工人的夜班费标准是多少？",
+"煤矿工人如何考取特种作业操作证？",
+"煤矿工人的工资由哪些部分组成？",
+"煤矿工人如何应对井下恶劣环境？",
+"煤矿工人的退休工资有多少？",
+"煤矿工人如何平衡工作与家庭？",
+"煤矿工人的食堂和宿舍条件怎么样？",
+"煤矿工人的工会有什么作用？",
+"煤矿工人如何申请劳动仲裁？",
+"煤矿工人的安全培训内容有哪些？",
+"煤矿工人如何晋升为班组长？",
+"煤矿工人的劳保用品多久发放一次？",
+"煤矿工人如何预防腰椎间盘突出？",
+"现在动力煤价格多少钱一吨？",
+"投资煤矿需要具备哪些条件？",
+"煤炭价格未来走势会怎么样？",
+"煤矿开采成本主要包括哪些？",
+"如何评估一个煤矿的投资价值？",
+"煤炭期货如何交易？",
+"煤矿股权转让需要注意哪些问题？",
+"影响煤炭价格的因素有哪些？",
+"煤矿建设项目需要哪些审批手续？",
+"煤炭进出口政策有哪些变化？",
+"煤矿企业如何进行成本控制？",
+"炼焦煤和动力煤有什么区别？",
+"煤炭库存多少才算合理？",
+"煤矿企业如何拓展销售渠道？",
+"煤炭行业的利润率是多少？",
+"煤矿如何减少煤矸石的污染？",
+"煤矿矿井水怎么处理才能达标排放？",
+"煤矿绿色矿山建设标准是什么？",
+"煤矿瓦斯如何综合利用？",
+"煤矿开采对周边环境有哪些影响？",
+"煤矿采煤沉陷区如何治理？",
+"煤矿如何降低碳排放？",
+"煤矿煤矸石有哪些利用途径？",
+"煤矿井下废气如何处理？",
+"煤矿生态修复需要哪些技术？",
+"煤矿环保税如何计算？",
+"煤矿如何实现清洁生产？",
+"煤矿土地复垦有哪些要求？",
+"煤矿噪声污染如何治理？",
+"煤矿如何应对环保督察？",
+"煤矿发生瓦斯爆炸后如何开展救援？",
+"煤矿井下被困人员如何自救互救？",
+"煤矿应急救援队伍需要哪些装备？",
+"煤矿应急预案如何编制？",
+"煤矿应急演练多久进行一次？",
+"煤矿透水事故救援有哪些难点？",
+"煤矿井下发生火灾时如何组织撤离？",
+"煤矿应急救援指挥系统如何运行？",
+"煤矿医疗救护站需要配备哪些设备？",
+"煤矿事故调查处理程序是什么？",
+"如何建设智能化煤矿？",
+"煤矿智能化改造需要投入多少资金？",
+"煤矿机器人有哪些应用场景？",
+"煤矿5G技术如何应用？",
+"煤矿大数据平台有什么作用？",
+"煤矿无人开采技术发展到什么程度了？",
+"煤矿智能化设备如何维护？",
+"煤矿数字孪生技术如何应用？",
+"煤矿智能化人才如何培养？",
+"煤矿智能化建设有哪些补贴政策？",
+"中国最早的煤矿是哪一个？",
+"煤矿工人的节日是哪一天？",
+"煤矿行业有哪些传统习俗？",
+"中国最大的煤矿在哪里？",
+"煤矿精神的内涵是什么？"
+];
+
+document.addEventListener('DOMContentLoaded', function() {
+const suggestionGrid = document.getElementById('suggestionGrid');
+const messageInput = document.getElementById('messageInput');
+const messageContainer = document.querySelector('.message-input');
+const refreshBtn = document.getElementById('refreshQuestions');
+const sendBtn = document.getElementById('sendBtn');
+const chatMessages = document.getElementById('chatMessages');
+const imagePreview = document.getElementById('imagePreview');
+const previewImage = document.getElementById('previewImage');
+const removeImageBtn = document.getElementById('removeImageBtn');
+const fileUploadBtn = document.getElementById('fileUploadBtn');
+const fileUploadModal = document.getElementById('fileUploadModal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const dataFileBtn = document.getElementById('dataFileBtn');
+const pngFileBtn = document.getElementById('pngFileBtn');
+const textFileBtn = document.getElementById('textFileBtn');
+const dataFileUpload = document.getElementById('dataFileUpload');
+const pngFileUpload = document.getElementById('pngFileUpload');
+const textFileUpload = document.getElementById('textFileUpload');
+const mentionPopup = document.getElementById('mentionPopup');
+const addToKnowledgeBtn = document.getElementById('addToKnowledgeBtn');
+let usedIndices = [];
+let selectedImage = null;
+let selectedFileContext = null;
+let selectedKnowledgeFile = null;
+
+const API_BASE_URL = 'http://localhost:5000';
+
+// 获取带token的请求头
+function getAuthHeaders() {
+    const token = Auth.getToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+}
+
+let chatHistory = [];
+let currentConversationId = null;
+let currentHistoryMessages = [];
+
+// 页面加载时检查登录状态
+document.addEventListener('DOMContentLoaded', function() {
+    if (!Auth.isLoggedIn()) {
+        // 保存当前页面URL，登录成功后跳转回来
+        sessionStorage.setItem('redirectUrl', window.location.href);
+        window.location.href = 'login.html';
+        return;
+    }
+    // 更新用户显示信息
+    updateUserDisplay();
+});
+
+async function loadHistory() {
+try {
+const response = await fetch(`${API_BASE_URL}/api/chat/history`, {
+    headers: getAuthHeaders()
+});
+const result = await response.json();
+if (result.success) {
+chatHistory = result.data;
+renderHistory();
+}
+} catch (error) {
+console.error('加载历史记录失败:', error);
+}
+}
+
+function saveToHistory(question, answer, questionAttachments = [], answerAttachments = []) {
+// 查找是否已有相同 conversation_id 的记录
+const existingIndex = chatHistory.findIndex(item => item.id === currentConversationId);
+let item;
+if (existingIndex >= 0) {
+// 更新现有记录：追加新的问答对
+item = chatHistory[existingIndex];
+if (!item.qa_pairs) {
+item.qa_pairs = [{ question: item.first_question || item.question, answer: item.last_answer || item.answer, question_attachments: [], answer_attachments: [] }];
+}
+item.qa_pairs.push({ question: question, answer: answer, question_attachments: questionAttachments, answer_attachments: answerAttachments });
+item.turns = item.qa_pairs.length;
+item.last_answer = answer.substring(0, 200);
+item.time = new Date().toLocaleString('zh-CN');
+// 移到最前面
+chatHistory.splice(existingIndex, 1);
+chatHistory.unshift(item);
+} else {
+// 新建记录
+item = {
+id: currentConversationId || Date.now().toString(),
+first_question: question,
+last_answer: answer.substring(0, 200),
+qa_pairs: [{ question: question, answer: answer, question_attachments: questionAttachments, answer_attachments: answerAttachments }],
+time: new Date().toLocaleString('zh-CN'),
+turns: 1
+};
+chatHistory.unshift(item);
+}
+if (chatHistory.length > 50) {
+chatHistory = chatHistory.slice(0, 50);
+}
+renderHistory();
+
+// 同步保存到后端
+fetch(`${API_BASE_URL}/api/chat/history`, {
+method: 'POST',
+headers: getAuthHeaders(),
+body: JSON.stringify({
+id: item.id,
+time: item.time,
+qa_pairs: item.qa_pairs
+})
+}).catch(e => console.error('保存历史记录到后端失败:', e));
+}
+
+function truncateText(text, maxLength) {
+    if (!text) return '无标题';
+    text = text.replace(/\n/g, ' ').trim();
+    if (text.length > maxLength) {
+        return text.substring(0, maxLength) + '...';
+    }
+    return text;
+}
+
+function renderHistory() {
+const historyList = document.getElementById('historyList');
+
+if (chatHistory.length === 0) {
+historyList.innerHTML = '<div class="text-gray-400 text-sm text-center py-8">暂无历史记录</div>';
+return;
+}
+
+historyList.innerHTML = chatHistory.map((item, index) => {
+const rawQuestion = item.first_question || item.question || '无标题';
+const displayQuestion = truncateText(rawQuestion, 24);
+const turns = item.turns || 1;
+const turnsBadge = turns > 1 ? `<span class="ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-600 text-xs rounded">${turns}轮</span>` : '';
+return `
+<div class="history-item bg-white rounded-lg p-3 cursor-pointer hover:bg-blue-50 transition-colors border border-gray-100 flex items-start justify-between group overflow-hidden" data-index="${index}">
+<div class="flex-1 history-content min-w-0">
+<div class="flex items-center gap-1 min-w-0">
+<div class="text-sm text-gray-800 truncate min-w-0" title="${rawQuestion}">${displayQuestion}</div>
+${turnsBadge}
+</div>
+<div class="text-xs text-gray-400 mt-1">${item.time}</div>
+</div>
+<button class="delete-history-btn ml-2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all flex-shrink-0" title="删除记录">
+<i class="fas fa-trash"></i>
+</button>
+</div>
+`;
+}).join('');
+
+document.querySelectorAll('.history-content').forEach((element, index) => {
+element.addEventListener('click', function() {
+loadHistoryConversation(index);
+});
+});
+
+function loadHistoryConversation(index) {
+const item = chatHistory[index];
+const messageList = document.getElementById('messageList');
+if (messageList) messageList.innerHTML = '';
+hideWelcome();
+// 加载完整的多轮对话
+if (item.qa_pairs && item.qa_pairs.length > 0) {
+item.qa_pairs.forEach(pair => {
+addMessage(pair.question, true, false, pair.question_attachments || []);
+addMessage(pair.answer, false, false, pair.answer_attachments || []);
+});
+} else if (item.question && item.answer) {
+addMessage(item.question, true);
+addMessage(item.answer, false);
+}
+messageInput.value = '';
+selectedImage = null;
+clearImagePreview();
+currentConversationId = item.id;
+// 重建 history_messages
+if (item.qa_pairs && item.qa_pairs.length > 0) {
+currentHistoryMessages = [];
+item.qa_pairs.forEach(pair => {
+currentHistoryMessages.push({ role: 'user', content: pair.question });
+currentHistoryMessages.push({ role: 'assistant', content: pair.answer });
+});
+
+} else {
+currentHistoryMessages = [
+{ role: 'user', content: item.question || item.first_question },
+{ role: 'assistant', content: item.answer || item.last_answer }
+];
+}
+chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+document.querySelectorAll('.delete-history-btn').forEach((button, index) => {
+button.addEventListener('click', async function(e) {
+e.stopPropagation();
+const item = chatHistory[index];
+const displayQuestion = item.first_question || item.question || '这条记录';
+if (!confirm(`确定要删除这条记录吗？\n${displayQuestion}`)) {
+return;
+}
+
+try {
+const response = await fetch(`${API_BASE_URL}/api/chat/history/${item.id}`, {
+method: 'DELETE',
+headers: getAuthHeaders()
+});
+const result = await response.json();
+
+if (result.success) {
+chatHistory.splice(index, 1);
+renderHistory();
+} else {
+alert('删除失败：' + result.message);
+}
+} catch (error) {
+alert('删除失败：网络错误');
+}
+});
+});
+}
+
+async function loadAgents() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/agents`, {
+            headers: getAuthHeaders()
+        });
+        const result = await response.json();
+        if (result.success) {
+            console.log('智能体列表:', result.data);
+            window.agentsData = result.data;
+        }
+    } catch (e) {
+        console.warn('加载智能体列表失败:', e);
+    }
+}
+
+async function loadOperations() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/operations`, {
+            headers: getAuthHeaders()
+        });
+        const result = await response.json();
+        if (result.success) {
+            console.log('操作记录:', result.data);
+            window.operationsData = result.data;
+        }
+    } catch (e) {
+        console.warn('加载操作记录失败:', e);
+    }
+}
+
+async function loadOrgTree() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/org/tree`, {
+            headers: getAuthHeaders()
+        });
+        const result = await response.json();
+        if (result.success) {
+            console.log('组织架构树:', result.data);
+            window.orgTreeData = result.data;
+        }
+    } catch (e) {
+        console.warn('加载组织架构失败:', e);
+    }
+}
+
+async function loadKnowledgeList() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/knowledge/list`, {
+            headers: getAuthHeaders()
+        });
+        const result = await response.json();
+        if (result.success) {
+            console.log('知识库列表:', result.data);
+            window.knowledgeListData = result.data;
+        }
+    } catch (e) {
+        console.warn('加载知识库列表失败:', e);
+    }
+}
+
+function newChat() {
+const messageList = document.getElementById('messageList');
+if (messageList) messageList.innerHTML = '';
+messageInput.value = '';
+selectedImage = null;
+clearImagePreview();
+currentConversationId = null;
+currentHistoryMessages = [];
+showWelcome();
+messageInput.focus();
+}
+
+function hideWelcome() {
+    const welcome = document.getElementById('welcomeSection');
+    const suggestion = document.getElementById('suggestionSection');
+    if (welcome) welcome.style.display = 'none';
+    if (suggestion) suggestion.style.display = 'none';
+}
+
+function showWelcome() {
+    const welcome = document.getElementById('welcomeSection');
+    const suggestion = document.getElementById('suggestionSection');
+    if (welcome) welcome.style.display = '';
+    if (suggestion) suggestion.style.display = '';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function renderInline(text) {
+    // Markdown 图片 ![alt](url) - 支持 http/https、data:image 和相对路径
+    text = text.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s"'<>]+|data:image\/[a-zA-Z]+;base64,[^\s"'<>]+|\/[^\s"'<>]+)\)/g, function(match, alt, url) {
+        // 相对路径补全为完整 URL
+        if (url.startsWith('/') && !url.startsWith('//')) {
+            url = API_BASE_URL + url;
+        }
+        return '<div class="image-container-wrapper"><div class="image-container"><img src="' + url + '" alt="' + alt + '" class="chart-image"></div><div class="image-controls"><button class="zoom-btn" onclick="zoomImage(this, 0.1)">+</button><button class="zoom-btn" onclick="zoomImage(this, -0.1)">-</button><button class="zoom-btn" onclick="resetZoom(this)">重置</button></div></div>';
+    });
+    // Markdown 链接 [text](url)
+    text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s"'<>]+)\)/g, '<a href="$2" target="_blank" class="md-link">$1</a>');
+    // 粗体 **text**
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // 斜体 *text*（在 ** 处理之后，简单的 * 匹配即可）
+    text = text.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+    // 行内代码 `code`
+    text = text.replace(/`([^`]+)`/g, '<code class="md-code">$1</code>');
+    // 裸 URL 自动链接（跳过在引号或等号后面的URL）
+    text = text.replace(/https?:\/\/[^\s"'<>]+/g, function(match, offset, string) {
+        const prevChar = string[offset - 1];
+        if (prevChar === '"' || prevChar === "'" || prevChar === '=') {
+            return match;
+        }
+        return '<a href="' + match + '" target="_blank" class="md-link">' + match + '</a>';
+    });
+    return text;
+}
+
+function zoomImage(btn, delta) {
+    const wrapper = btn.closest('.image-container-wrapper');
+    const img = wrapper.querySelector('.chart-image');
+    const currentWidth = parseFloat(img.style.width) || 100;
+    let newWidth = currentWidth + (delta * 100);
+    newWidth = Math.max(50, Math.min(500, newWidth));
+    img.style.width = newWidth + '%';
+}
+
+function resetZoom(btn) {
+    const wrapper = btn.closest('.image-container-wrapper');
+    const img = wrapper.querySelector('.chart-image');
+    img.style.width = '100%';
+}
+
+function renderMarkdown(text) {
+    if (!text) return '';
+    const lines = text.split('\n');
+    let html = '';
+    let tableLines = [];
+    let inList = false;
+    let listType = '';
+
+    function flushTable() {
+        if (tableLines.length >= 2) {
+            // 判断分隔符：优先检测制表符，否则检测 Markdown 表格的 |
+            const firstLine = tableLines[0];
+            const isMarkdownTable = firstLine.includes('|') && !firstLine.includes('\t');
+            let headers = [];
+            let dataRows = [];
+            if (isMarkdownTable) {
+                // Markdown 表格：| 列1 | 列2 | 列3 |
+                headers = firstLine.split('|').map(c => c.trim()).filter(c => c);
+                // 第二行通常是分隔符 |---|---|，跳过
+                let startIdx = 1;
+                if (tableLines[1] && tableLines[1].replace(/[|\-\s]/g, '') === '') {
+                    startIdx = 2;
+                }
+                for (let i = startIdx; i < tableLines.length; i++) {
+                    const cells = tableLines[i].split('|').map(c => c.trim()).filter(c => c);
+                    if (cells.length > 0) dataRows.push(cells);
+                }
+            } else {
+                // 制表符分隔表格
+                headers = firstLine.split('\t').map(c => c.trim()).filter(c => c);
+                for (let i = 1; i < tableLines.length; i++) {
+                    const cells = tableLines[i].split('\t').map(c => c.trim());
+                    if (cells.length > 0) dataRows.push(cells);
+                }
+            }
+            if (headers.length > 0 && dataRows.length > 0) {
+                html += '<div class="table-wrapper"><table class="data-table"><thead><tr>';
+                headers.forEach(cell => {
+                    html += `<th>${escapeHtml(cell)}</th>`;
+                });
+                html += '</tr></thead><tbody>';
+                dataRows.forEach(row => {
+                    html += '<tr>';
+                    row.forEach((cell, idx) => {
+                        if (idx < headers.length) {
+                            html += `<td>${escapeHtml(cell)}</td>`;
+                        }
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div>';
+            } else {
+                // 表格数据不完整，按段落渲染
+                tableLines.forEach(line => {
+                    html += `<p class="md-p">${renderInline(line)}</p>`;
+                });
+            }
+        } else if (tableLines.length === 1) {
+            html += `<p class="md-p">${renderInline(tableLines[0])}</p>`;
+        }
+        tableLines = [];
+    }
+
+    function flushList() {
+        if (inList) {
+            html += `</${listType}>`;
+            inList = false;
+            listType = '';
+        }
+    }
+
+    lines.forEach(line => {
+        const trimmed = line.trim();
+        // 检测表格行：制表符分隔 或 Markdown | 分隔
+        const isTableLine = (line.includes('\t') || (line.includes('|') && trimmed.startsWith('|'))) && trimmed;
+
+        if (isTableLine) {
+            flushList();
+            tableLines.push(line);
+            return;
+        }
+
+        flushTable();
+
+        if (trimmed === '') {
+            flushList();
+            return;
+        }
+
+        // 标题 # 到 ######
+        const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+        if (headingMatch) {
+            flushList();
+            const level = headingMatch[1].length;
+            html += `<h${level} class="md-h${level}">${renderInline(headingMatch[2])}</h${level}>`;
+            return;
+        }
+
+        // 分割线 --- 或 ***
+        if (line.match(/^(---+|\*\*\*)$/)) {
+            flushList();
+            html += '<hr class="md-hr">';
+            return;
+        }
+
+        // 无序列表
+        const ulMatch = line.match(/^[\*\-]\s+(.*)$/);
+        if (ulMatch) {
+            if (!inList || listType !== 'ul') {
+                flushList();
+                html += '<ul class="md-ul">';
+                inList = true;
+                listType = 'ul';
+            }
+            html += `<li>${renderInline(ulMatch[1])}</li>`;
+            return;
+        }
+
+        // 有序列表
+        const olMatch = line.match(/^\d+\.\s+(.*)$/);
+        if (olMatch) {
+            if (!inList || listType !== 'ol') {
+                flushList();
+                html += '<ol class="md-ol">';
+                inList = true;
+                listType = 'ol';
+            }
+            html += `<li>${renderInline(olMatch[1])}</li>`;
+            return;
+        }
+
+        // 普通段落
+        flushList();
+        html += `<p class="md-p">${renderInline(line)}</p>`;
+    });
+
+    flushTable();
+    flushList();
+    return html;
+}
+
+function addMessage(content, isUser, isHtml = false, attachments = []) {
+const messageDiv = document.createElement('div');
+messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`;
+const bgClass = isUser ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800';
+
+let innerHtml = '';
+
+// 渲染附件（图片/文件）
+if (attachments && attachments.length > 0) {
+    attachments.forEach(att => {
+        if (att.type === 'image') {
+            innerHtml += `<img src="${att.url}" alt="图片" class="max-w-xs max-h-48 rounded-lg border mb-2 cursor-zoom-in" onclick="openImageLightbox('${att.url}')">`;
+        } else if (att.type === 'file') {
+            innerHtml += `<div class="flex items-center p-2 bg-white/20 rounded mb-2"><i class="fas fa-file mr-2"></i><span class="text-sm">${att.name || '文件'}</span></div>`;
+        }
+    });
+}
+
+if (isHtml) {
+    innerHtml += content;
+} else {
+    innerHtml += `<div class="markdown-content">${renderMarkdown(content)}</div>`;
+}
+
+const widthClass = isUser ? 'max-w-sm' : 'max-w-3xl';
+messageDiv.innerHTML = `<div class="${bgClass} rounded-lg px-4 py-2 ${widthClass}">${innerHtml}</div>`;
+const messageList = document.getElementById('messageList');
+if (messageList) messageList.appendChild(messageDiv);
+chatMessages.scrollTop = chatMessages.scrollHeight;
+
+// 给消息中的图片添加点击放大预览
+const imgs = messageDiv.querySelectorAll('img');
+imgs.forEach(function(img) {
+    img.style.cursor = 'zoom-in';
+    img.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openImageLightbox(img.src);
+    });
+});
+}
+
+function openImageLightbox(src) {
+    const lightbox = document.getElementById('imageLightbox');
+    const img = document.getElementById('lightboxImg');
+    if (lightbox && img) {
+        img.src = src;
+        lightbox.classList.remove('hidden');
+    }
+}
+
+function closeImageLightbox() {
+    const lightbox = document.getElementById('imageLightbox');
+    if (lightbox) {
+        lightbox.classList.add('hidden');
+        document.getElementById('lightboxImg').src = '';
+    }
+}
+
+function addLoadingMessage() {
+const loadingDiv = document.createElement('div');
+loadingDiv.className = 'flex justify-start mb-4';
+loadingDiv.id = 'loadingMessage';
+loadingDiv.innerHTML = `
+<div class="bg-gray-100 text-gray-800 rounded-lg px-4 py-2">
+<p class="text-sm">正在思考中...</p>
+</div>
+`;
+const messageList = document.getElementById('messageList');
+if (messageList) messageList.appendChild(loadingDiv);
+chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function removeLoadingMessage() {
+const loadingDiv = document.getElementById('loadingMessage');
+if (loadingDiv) {
+loadingDiv.remove();
+}
+}
+
+async function sendMessage(message, extraAttachments = []) {
+hideWelcome();
+let userAttachments = [];
+if (selectedImage) {
+    userAttachments = [{type: 'image', url: selectedImage.base64}];
+}
+userAttachments = userAttachments.concat(extraAttachments);
+
+// 处理已选择的文件（Excel/CSV/TXT/JSON）
+let finalMessage = message;
+let fileContent = '';  // 新增：存储文件内容用于表格操作
+if (selectedKnowledgeFile && selectedKnowledgeFile.file) {
+    const file = selectedKnowledgeFile.file;
+    const ext = file.name.split('.').pop().toLowerCase();
+    
+    if (['csv', 'txt', 'json', 'md', 'py'].includes(ext)) {
+        try {
+            const content = await file.text();
+            finalMessage = `以下是文件「${file.name}」的内容：\n\n\`\`\`\n${content}\n\`\`\`\n\n---\n用户问题：${message}`;
+            fileContent = content;  // 保存文件内容
+        } catch (e) {
+            console.error('读取文件失败:', e);
+        }
+    } else if (['xlsx', 'xls'].includes(ext)) {
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const headers = {};
+            const token = Auth.getToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            const resp = await fetch(`${API_BASE_URL}/api/file/parse`, {
+                method: 'POST',
+                headers: headers,
+                body: formData
+            });
+            const parseResult = await resp.json();
+            if (parseResult.success) {
+                // 如果返回了 table_data 结构，转换为制表符分隔格式
+                if (parseResult.data.table_data) {
+                    const td = parseResult.data.table_data;
+                    // 构建制表符分隔的文本
+                    let content = td.headers.join('\t') + '\n';
+                    td.rows.forEach(row => {
+                        content += row.join('\t') + '\n';
+                    });
+                    finalMessage = `以下是Excel文件「${file.name}」的内容：\n\n\`\`\`\n${content}\`\`\`\n\n---\n用户问题：${message}`;
+                    fileContent = content;
+                } else {
+                    finalMessage = `以下是Excel文件「${file.name}」的内容：\n\n\`\`\`\n${parseResult.data.content}\n\`\`\`\n\n---\n用户问题：${message}`;
+                    fileContent = parseResult.data.content;
+                }
+            } else {
+                alert('文件解析失败：' + parseResult.message);
+                return;
+            }
+        } catch (e) {
+            console.error('解析Excel失败:', e);
+            alert('文件解析失败');
+            return;
+        }
+    }
+    
+    // 清空文件选择状态
+    selectedKnowledgeFile = null;
+    messageInput.placeholder = '输入消息...';
+    fileUploadBtn.classList.remove('text-blue-500');
+}
+
+addMessage(finalMessage, true, false, userAttachments);
+addLoadingMessage();
+messageInput.value = '';
+
+try {
+const response = await fetch(`${API_BASE_URL}/api/chat`, {
+method: 'POST',
+headers: getAuthHeaders(),
+body: JSON.stringify({ 
+    message: finalMessage,
+    conversation_id: currentConversationId,
+    history_messages: currentHistoryMessages,
+    file_content: fileContent
+})
+});
+
+const result = await response.json();
+removeLoadingMessage();
+
+if (result.success) {
+const isHtml = result.data.is_html || false;
+const assistantAttachments = result.data.attachments || [];
+addMessage(result.data.reply, false, isHtml, assistantAttachments);
+
+if (result.data.conversation_id) {
+currentConversationId = result.data.conversation_id;
+}
+
+currentHistoryMessages.push({ role: 'user', content: finalMessage });
+currentHistoryMessages.push({ role: 'assistant', content: result.data.reply });
+
+
+
+saveToHistory(finalMessage, result.data.reply, userAttachments, assistantAttachments);
+} else {
+addMessage('抱歉，出现了错误：' + result.message, false);
+}
+} catch (error) {
+removeLoadingMessage();
+addMessage('抱歉，网络连接失败，请检查后端服务是否启动。', false);
+}
+}
+
+function fileToBase64(file) {
+return new Promise((resolve, reject) => {
+const reader = new FileReader();
+reader.onload = () => resolve(reader.result);
+reader.onerror = error => reject(error);
+reader.readAsDataURL(file);
+});
+}
+
+async function sendImageMessage(base64, question) {
+hideWelcome();
+const userAttachments = [{type: 'image', url: base64}];
+const imageHtml = `<img src="${base64}" alt="上传的图片" class="max-w-xs max-h-48 rounded-lg border" />`;
+const displayContent = question || '图片识别';
+addMessage(imageHtml + (question ? `<p class="mt-2">${question}</p>` : ''), true, true, userAttachments);
+addLoadingMessage();
+
+try {
+const response = await fetch(`${API_BASE_URL}/api/chat/image`, {
+method: 'POST',
+headers: getAuthHeaders(),
+body: JSON.stringify({
+image_url: base64,
+question: question || '这张图片是什么？',
+conversation_id: currentConversationId,
+history_messages: currentHistoryMessages
+})
+});
+
+const result = await response.json();
+removeLoadingMessage();
+
+if (result.success) {
+addMessage(result.data.reply, false);
+if (result.data.conversation_id) {
+currentConversationId = result.data.conversation_id;
+}
+currentHistoryMessages.push({ role: 'user', content: displayContent });
+currentHistoryMessages.push({ role: 'assistant', content: result.data.reply });
+saveToHistory(displayContent, result.data.reply, userAttachments, []);
+} else {
+addMessage('抱歉，图片识别失败：' + result.message, false);
+}
+} catch (error) {
+removeLoadingMessage();
+addMessage('抱歉，图片上传失败：' + error.message, false);
+}
+}
+
+function getRandomQuestions(count) {
+const questions = [];
+let attempts = 0;
+while (questions.length < count && attempts < 100) {
+const index = Math.floor(Math.random() * coalMineQuestions.length);
+if (!usedIndices.includes(index)) {
+questions.push(coalMineQuestions[index]);
+usedIndices.push(index);
+if (usedIndices.length > coalMineQuestions.length / 2) {
+usedIndices = usedIndices.slice(Math.floor(usedIndices.length / 2));
+}
+}
+attempts++;
+}
+return questions;
+}
+
+function renderSuggestionCards() {
+suggestionGrid.innerHTML = '';
+const questions = getRandomQuestions(6);
+questions.forEach(question => {
+const card = document.createElement('div');
+card.className = 'suggestion-card rounded-xl p-4 cursor-pointer';
+card.innerHTML = `<p class="text-gray-800 text-sm">${question}</p>`;
+card.addEventListener('click', function() {
+sendMessage(question);
+});
+suggestionGrid.appendChild(card);
+});
+}
+
+messageInput.addEventListener('keypress', async function(e) {
+if (e.key === 'Enter') {
+const message = messageInput.value.trim();
+if (selectedImage) {
+await sendImageMessage(selectedImage.base64, message);
+clearImagePreview();
+messageInput.value = '';
+} else if (message) {
+sendMessage(message);
+}
+}
+});
+
+// @ Mention functionality
+messageInput.addEventListener('keyup', function(e) {
+    const value = messageInput.value;
+    const lastChar = value.slice(-1);
+    if (lastChar === '@') {
+        mentionPopup.classList.remove('hidden');
+    } else if (!value.includes('@')) {
+        mentionPopup.classList.add('hidden');
+    }
+});
+
+messageInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        mentionPopup.classList.add('hidden');
+    }
+});
+
+// Mention option click
+document.querySelectorAll('.mention-option').forEach(function(option) {
+    option.addEventListener('click', function() {
+        const value = option.getAttribute('data-value');
+        const currentValue = messageInput.value;
+        const newValue = currentValue.replace(/@$/, '@' + value + ' ');
+        messageInput.value = newValue;
+        mentionPopup.classList.add('hidden');
+        messageInput.focus();
+    });
+});
+
+// Click outside to close mention popup
+document.addEventListener('click', function(e) {
+    if (!mentionPopup.contains(e.target) && e.target !== messageInput) {
+        mentionPopup.classList.add('hidden');
+    }
+});
+
+sendBtn.addEventListener('click', async function() {
+const message = messageInput.value.trim();
+
+if (selectedImage) {
+await sendImageMessage(selectedImage.base64, message);
+clearImagePreview();
+messageInput.value = '';
+} else if (message) {
+sendMessage(message);
+}
+});
+
+function clearImagePreview() {
+selectedImage = null;
+pngFileUpload.value = '';
+fileUploadBtn.classList.remove('text-blue-500');
+imagePreview.classList.add('hidden');
+previewImage.src = '';
+messageInput.placeholder = '发消息...';
+}
+
+function openFileModal() {
+fileUploadModal.classList.remove('hidden');
+}
+
+function closeFileModal() {
+fileUploadModal.classList.add('hidden');
+}
+
+fileUploadBtn.addEventListener('click', function() {
+openFileModal();
+});
+
+closeModalBtn.addEventListener('click', function() {
+closeFileModal();
+});
+
+fileUploadModal.addEventListener('click', function(e) {
+if (e.target === fileUploadModal) {
+closeFileModal();
+}
+});
+
+dataFileBtn.addEventListener('click', function() {
+closeFileModal();
+dataFileUpload.click();
+});
+
+pngFileBtn.addEventListener('click', function() {
+closeFileModal();
+pngFileUpload.click();
+});
+
+textFileBtn.addEventListener('click', function() {
+closeFileModal();
+textFileUpload.click();
+});
+
+const qrUploadBtn = document.getElementById('qrUploadBtn');
+qrUploadBtn.addEventListener('click', function() {
+    console.log('扫描上传按钮被点击');
+    try {
+        closeFileModal();
+        openQRUploadModal();
+    } catch (e) {
+        console.error('扫描上传按钮处理出错:', e);
+    }
+});
+
+dataFileUpload.addEventListener('change', function(e) {
+const file = e.target.files[0];
+if (file) {
+handleFileUpload(file, 'data');
+}
+});
+
+pngFileUpload.addEventListener('change', function(e) {
+const file = e.target.files[0];
+if (file) {
+handleFileUpload(file, 'image');
+}
+});
+
+textFileUpload.addEventListener('change', function(e) {
+const file = e.target.files[0];
+if (file) {
+handleFileUpload(file, 'text');
+}
+});
+
+function handleFileUpload(file, type) {
+fileUploadBtn.classList.add('text-blue-500');
+messageInput.placeholder = `已选择${file.name}，输入问题后发送...`;
+selectedKnowledgeFile = {
+    file: file,
+    type: type
+};
+}
+
+pngFileUpload.addEventListener('change', async function(e) {
+const file = e.target.files[0];
+if (file) {
+try {
+const base64 = await fileToBase64(file);
+selectedImage = {
+file: file,
+base64: base64
+};
+selectedKnowledgeFile = {
+    file: file,
+    type: 'image'
+};
+previewImage.src = base64;
+imagePreview.classList.remove('hidden');
+fileUploadBtn.classList.add('text-blue-500');
+messageInput.placeholder = '输入关于图片的问题，然后点击发送...';
+} catch (error) {
+alert('图片读取失败：' + error.message);
+}
+}
+});
+
+removeImageBtn.addEventListener('click', function() {
+clearImagePreview();
+});
+
+addToKnowledgeBtn.addEventListener('click', async function() {
+    if (!selectedKnowledgeFile || !selectedKnowledgeFile.file) {
+        alert('请先上传文件');
+        return;
+    }
+    
+    // 使用 auth.js 统一的 token key（ruoyi_token），不要用 'token'
+    const token = (typeof Auth !== 'undefined' && Auth.getToken())
+        || localStorage.getItem('ruoyi_token')
+        || localStorage.getItem('token');
+    if (!token) {
+        alert('请先登录');
+        return;
+    }
+    
+    const file = selectedKnowledgeFile.file;
+    const formData = new FormData();
+    formData.append('title', file.name);
+    formData.append('type', selectedKnowledgeFile.type || 'other');
+    formData.append('description', `从聊天窗口上传到知识库的文件：${file.name}`);
+    formData.append('content', '');
+    formData.append('files', file);
+    
+    try {
+        addToKnowledgeBtn.innerHTML = '<i class="fas fa-spinner fa-spin w-6 h-6 flex items-center justify-center"></i>';
+        const response = await fetch(`${API_BASE_URL}/api/knowledge/create`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            },
+            body: formData
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert('已添加到知识库');
+            selectedKnowledgeFile = null;
+            fileUploadBtn.classList.remove('text-blue-500');
+            messageInput.placeholder = '发消息...';
+            clearImagePreview();
+        } else {
+            alert('添加失败：' + (result.message || '未知错误'));
+        }
+    } catch (error) {
+        alert('添加失败：' + error.message);
+    } finally {
+        addToKnowledgeBtn.innerHTML = '<i class="fas fa-book w-6 h-6 flex items-center justify-center"></i>';
+    }
+});
+
+refreshBtn.addEventListener('click', function() {
+const icon = this.querySelector('i');
+icon.style.transition = 'transform 0.3s';
+icon.style.transform = 'rotate(360deg)';
+setTimeout(() => {
+icon.style.transform = 'rotate(0deg)';
+}, 300);
+renderSuggestionCards();
+});
+
+const newChatBtn = document.getElementById('newChatBtn');
+newChatBtn.addEventListener('click', function() {
+newChat();
+});
+
+renderSuggestionCards();
+loadHistory();
+
+// 加载其他数据
+loadAgents();
+loadOperations();
+loadOrgTree();
+loadKnowledgeList();
+
+// ========== 侧边栏切换功能 ==========
+const leftSidebar = document.getElementById('leftSidebar');
+const rightSidebar = document.getElementById('rightSidebar');
+const toggleLeftSidebarBtn = document.getElementById('toggleLeftSidebarBtn');
+const toggleRightSidebarBtn = document.getElementById('toggleRightSidebarBtn');
+const collapseRightBtn = document.getElementById('collapseRightBtn');
+let qrStatusPollInterval = null;
+let droppedItems = [];
+
+// 切换左侧面板（历史记录）
+toggleLeftSidebarBtn.addEventListener('click', function() {
+    if (leftSidebar.classList.contains('w-0')) {
+        leftSidebar.classList.remove('w-0');
+        leftSidebar.classList.add('w-72');
+        toggleLeftSidebarBtn.classList.add('hidden');
+    } else {
+        leftSidebar.classList.remove('w-72');
+        leftSidebar.classList.add('w-0');
+        toggleLeftSidebarBtn.classList.remove('hidden');
+    }
+});
+
+// 切换右侧面板（手机连接）
+toggleRightSidebarBtn.addEventListener('click', function() {
+    if (rightSidebar.classList.contains('w-0')) {
+        rightSidebar.classList.remove('w-0');
+        rightSidebar.classList.add('w-80');
+        toggleRightSidebarBtn.classList.add('hidden');
+        generateQRCode();
+        startQRStatusPolling();
+        initDropZone();
+        setupSendButton();
+    } else {
+        rightSidebar.classList.remove('w-80');
+        rightSidebar.classList.add('w-0');
+        toggleRightSidebarBtn.classList.remove('hidden');
+        if (qrStatusPollInterval) clearInterval(qrStatusPollInterval);
+    }
+});
+
+collapseRightBtn.addEventListener('click', function() {
+    rightSidebar.classList.remove('w-80');
+    rightSidebar.classList.add('w-0');
+    toggleRightSidebarBtn.classList.remove('hidden');
+    if (qrStatusPollInterval) clearInterval(qrStatusPollInterval);
+});
+
+// 生成二维码
+async function generateQRCode() {
+    console.log('开始生成二维码...');
+    const canvas = document.getElementById('qrCodeCanvas');
+    const urlElement = document.getElementById('currentUrl');
+    if (!canvas || !urlElement) {
+        console.warn('canvas 或 urlElement 未找到');
+        return;
+    }
+    let qrCodeUrl = null;
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/qrcode/server-url`, {
+            headers: getAuthHeaders()
+        });
+        const result = await response.json();
+        console.log('获取服务器地址:', result);
+        if (result.success) {
+            if (result.connected && result.username) {
+                showConnectedUser(result.username, result.user_id);
+                return;
+            }
+            if (result.server_url && !result.server_url.includes('localhost') && !result.server_url.includes('127.0.0.1')) {
+                qrCodeUrl = `${result.server_url}/mobile/connect`;
+            }
+        }
+    } catch (error) {
+        console.warn('获取服务器地址失败:', error);
+    }
+    if (!qrCodeUrl) {
+        urlElement.textContent = '无法获取局域网IP，请确认后端正常运行';
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#EF4444';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('获取IP失败', canvas.width/2, canvas.height/2 - 6);
+        ctx.fillText('请刷新重试', canvas.width/2, canvas.height/2 + 8);
+        return;
+    }
+    urlElement.textContent = qrCodeUrl;
+    console.log('生成二维码 URL:', qrCodeUrl);
+    
+    // 备用方案：如果 qrcode.js 未加载，使用 Google Charts API
+    if (typeof QRCode === 'undefined' && typeof qrcode === 'undefined') {
+        console.warn('qrcode.js 未加载，使用 Google Charts 备用方案');
+        const img = document.getElementById('qrCodeImg');
+        if (img) {
+            img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=' + encodeURIComponent(qrCodeUrl);
+            img.style.display = 'block';
+            const canvas = document.getElementById('qrCodeCanvas');
+            if (canvas) canvas.style.display = 'none';
+        }
+        return;
+    }
+    
+    const QR = QRCode || qrcode;
+    try {
+        const dataUrl = await QR.toDataURL(qrCodeUrl, { width: 128, margin: 1, color: { dark: '#000000', light: '#ffffff' } });
+        console.log('二维码 DataURL 生成成功');
+        const img = document.getElementById('qrCodeImg');
+        if (img) {
+            img.src = dataUrl;
+            img.style.display = 'block';
+            const canvas = document.getElementById('qrCodeCanvas');
+            if (canvas) canvas.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('二维码生成失败:', error);
+        // 回退到 Google Charts
+        const img = document.getElementById('qrCodeImg');
+        if (img) {
+            img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=' + encodeURIComponent(qrCodeUrl);
+            img.style.display = 'block';
+            const canvas = document.getElementById('qrCodeCanvas');
+            if (canvas) canvas.style.display = 'none';
+        }
+    }
+}
+
+// 显示已连接用户
+function showConnectedUser(username, userId) {
+    const qrCodeArea = document.getElementById('qrCodeArea');
+    const connectedUserInfo = document.getElementById('connectedUserInfo');
+    const connectedUsername = document.getElementById('connectedUsername');
+    if (qrCodeArea) qrCodeArea.classList.add('hidden');
+    if (connectedUserInfo) connectedUserInfo.classList.remove('hidden');
+    if (connectedUsername) connectedUsername.textContent = username;
+}
+
+// 轮询连接状态（手机端发心跳，电脑端轮询检测）
+let connectedUserId = null;
+let statusPollInterval = null;
+
+function startQRStatusPolling() {
+    if (statusPollInterval) clearInterval(statusPollInterval);
+    statusPollInterval = setInterval(async function() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/qrcode/server-url`, {
+                headers: getAuthHeaders()
+            });
+            const result = await response.json();
+            if (result.success && result.connected && result.username) {
+                showConnectedUser(result.username, result.user_id);
+                connectedUserId = result.user_id;
+            } else {
+                // 连接已断开，恢复二维码显示
+                if (connectedUserId) {
+                    console.log('检测到连接断开');
+                    document.getElementById('qrCodeArea').classList.remove('hidden');
+                    document.getElementById('connectedUserInfo').classList.add('hidden');
+                    connectedUserId = null;
+                    generateQRCode();
+                }
+            }
+        } catch (e) {
+            console.warn('轮询状态失败:', e);
+        }
+    }, 1000); // 每1秒轮询一次
+}
+
+// 初始化拖放区域
+function initDropZone() {
+    const dropZone = document.getElementById('dropZoneEmpty');
+    const cardsContainer = document.getElementById('cardsContainer');
+    if (!dropZone) return;
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        dropZone.classList.add('border-blue-400', 'bg-blue-50');
+    });
+    dropZone.addEventListener('dragleave', function() {
+        dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+    });
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+        // 优先处理文件拖拽
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            for (let i = 0; i < files.length; i++) {
+                handleDroppedFile(files[i]);
+            }
+            return;
+        }
+        // 处理从聊天区拖拽的HTML内容（提取图片）
+        const html = e.dataTransfer.getData('text/html');
+        if (html && html.trim()) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const imgs = doc.querySelectorAll('img');
+            let hasImage = false;
+            imgs.forEach(function(img) {
+                const src = img.src || img.getAttribute('src');
+                if (src) {
+                    hasImage = true;
+                    const item = {
+                        type: src.startsWith('data:') ? 'image' : 'image',
+                        content: src,
+                        fileName: img.alt || '图片'
+                    };
+                    droppedItems.push(item);
+                    renderDropItem(item);
+                }
+            });
+            // 同时提取纯文本
+            const text = e.dataTransfer.getData('text/plain');
+            if (text && text.trim()) {
+                handleDroppedText(text.trim());
+            } else if (!hasImage) {
+                // 如果没有纯文本也没有图片，尝试使用HTML中的文本
+                const textContent = doc.body.textContent || doc.body.innerText || '';
+                if (textContent.trim()) {
+                    handleDroppedText(textContent.trim());
+                }
+            }
+            return;
+        }
+        // 处理从聊天区拖拽的纯文本
+        const text = e.dataTransfer.getData('text/plain');
+        if (text && text.trim()) {
+            handleDroppedText(text.trim());
+        }
+    });
+    dropZone.addEventListener('click', function() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.onchange = function(e) {
+            for (let i = 0; i < e.target.files.length; i++) {
+                handleDroppedFile(e.target.files[i]);
+            }
+        };
+        input.click();
+    });
+}
+
+// 处理拖放的文件
+function handleDroppedFile(file) {
+    const dropZoneEmpty = document.getElementById('dropZoneEmpty');
+    const cardsContainer = document.getElementById('cardsContainer');
+    if (dropZoneEmpty) dropZoneEmpty.classList.add('hidden');
+    if (cardsContainer) cardsContainer.classList.remove('hidden');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const item = {
+            type: file.type.startsWith('image/') ? 'image' : 'text',
+            content: e.target.result,
+            fileName: file.name
+        };
+        droppedItems.push(item);
+        renderDropItem(item);
+    };
+    if (file.type.startsWith('image/')) {
+        reader.readAsDataURL(file);
+    } else {
+        reader.readAsText(file);
+    }
+}
+
+function handleDroppedText(text) {
+    const dropZoneEmpty = document.getElementById('dropZoneEmpty');
+    const cardsContainer = document.getElementById('cardsContainer');
+    if (dropZoneEmpty) dropZoneEmpty.classList.add('hidden');
+    if (cardsContainer) cardsContainer.classList.remove('hidden');
+    const preview = text.substring(0, 40) + (text.length > 40 ? '...' : '');
+    const item = {
+        type: 'text',
+        content: text,
+        fileName: '选中的文本 (' + text.length + '字)'
+    };
+    droppedItems.push(item);
+    renderDropItem(item);
+}
+
+// 渲染拖放项
+function escapeHtml(text) {
+    if (!text) return '';
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderDropItem(item) {
+    const cardsContainer = document.getElementById('cardsContainer');
+    if (!cardsContainer) return;
+    const div = document.createElement('div');
+    div.className = 'bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between';
+    const safeFileName = escapeHtml(item.fileName);
+    if (item.type === 'image') {
+        div.innerHTML = `<div class="flex items-center"><img src="${item.content}" class="w-8 h-8 rounded object-cover mr-2"><span class="text-sm text-gray-700 truncate">${safeFileName}</span></div><button class="delete-drop-item text-red-500 hover:text-red-600 ml-2"><i class="fas fa-times"></i></button>`;
+    } else if (item.type === 'text') {
+        const preview = escapeHtml(item.content.substring(0, 30) + (item.content.length > 30 ? '...' : ''));
+        const safeContent = escapeHtml(item.content);
+        div.innerHTML = `<div class="flex items-center"><i class="fas fa-font text-green-500 mr-2"></i><span class="text-sm text-gray-700 truncate" title="${safeContent}">${preview}</span></div><button class="delete-drop-item text-red-500 hover:text-red-600 ml-2"><i class="fas fa-times"></i></button>`;
+    } else {
+        div.innerHTML = `<div class="flex items-center"><i class="fas fa-file-text text-blue-500 mr-2"></i><span class="text-sm text-gray-700 truncate">${safeFileName}</span></div><button class="delete-drop-item text-red-500 hover:text-red-600 ml-2"><i class="fas fa-times"></i></button>`;
+    }
+    // 绑定删除事件（使用 addEventListener 而非内联 onclick，避免全局作用域问题）
+    const btn = div.querySelector('.delete-drop-item');
+    btn.addEventListener('click', function() {
+        const index = Array.from(cardsContainer.children).indexOf(div);
+        droppedItems.splice(index, 1);
+        div.remove();
+        if (droppedItems.length === 0) {
+            document.getElementById('dropZoneEmpty').classList.remove('hidden');
+            document.getElementById('cardsContainer').classList.add('hidden');
+        }
+    });
+    cardsContainer.appendChild(div);
+}
+
+// 清空拖放区域
+function clearDropZone() {
+    droppedItems = [];
+    const cardsContainer = document.getElementById('cardsContainer');
+    const dropZoneEmpty = document.getElementById('dropZoneEmpty');
+    if (cardsContainer) { cardsContainer.innerHTML = ''; cardsContainer.classList.add('hidden'); }
+    if (dropZoneEmpty) dropZoneEmpty.classList.remove('hidden');
+}
+
+// 设置发送按钮
+function setupSendButton() {
+    const sendBtn = document.getElementById('sendRightBtn');
+    if (!sendBtn) return;
+    sendBtn.addEventListener('click', async function() {
+        if (droppedItems.length === 0) {
+            alert('请先拖拽内容到右侧区域');
+            return;
+        }
+        const selectedFormats = Array.from(document.querySelectorAll('input[name="outputFormat"]:checked')).map(input => input.value);
+        const format = selectedFormats.includes('document') ? 'document' : 'formatted';
+        // 分离文字和图片（包括被误判为文字的图片内容）
+        const texts = [];
+        const images = [];
+        droppedItems.forEach(function(item) {
+            if (item.type === 'image') {
+                const mimePart = item.content.startsWith('data:image/') ? item.content.split('/')[1].split(';')[0].toUpperCase() : 'UNKNOWN';
+                images.push({ filename: item.fileName, size: '未知', format: mimePart, base64: item.content });
+            } else if (item.type === 'text') {
+                // 检测文字内容是否实际是图片
+                if (item.content.startsWith('data:image/')) {
+                    const mimePart = item.content.split('/')[1].split(';')[0].toUpperCase();
+                    images.push({ filename: item.fileName, size: '未知', format: mimePart, base64: item.content });
+                } else if (/^https?:\/\/[^\s<>]+\.(?:png|jpg|jpeg|gif|webp)(\?.*)?$/i.test(item.content.trim())) {
+                    images.push({ filename: item.fileName, size: '未知', format: 'URL', url: item.content });
+                } else {
+                    texts.push(item.content);
+                }
+            }
+        });
+        const sendData = { texts: texts, images: images, format: format };
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/phone/send`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(sendData)
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert(`✓ 内容已发送\n文字: ${result.text_count || texts.length} 条\n图片: ${result.image_count || images.length} 张`);
+            } else {
+                alert(`✗ 发送失败: ${result.message}`);
+            }
+        } catch (error) {
+            alert('发送失败，请检查网络连接');
+        }
+        clearDropZone();
+    });
+}
+
+// ========== 扫码上传弹窗功能 ==========
+let qrUploadPollInterval = null;
+let qrUploadOpenedAt = 0;
+
+function openQRUploadModal() {
+    const modal = document.getElementById('qrUploadModal');
+    if (modal) modal.classList.remove('hidden');
+    qrUploadOpenedAt = Date.now();
+    generateQRUploadCode();
+    startQRUploadPolling();
+}
+
+function closeQRUploadModal() {
+    const modal = document.getElementById('qrUploadModal');
+    if (modal) modal.classList.add('hidden');
+    if (qrUploadPollInterval) clearInterval(qrUploadPollInterval);
+    document.getElementById('qrUploadStatus').classList.add('hidden');
+}
+
+async function generateQRUploadCode() {
+    const canvas = document.getElementById('qrUploadCanvas');
+    const img = document.getElementById('qrUploadImg');
+    const urlElement = document.getElementById('qrUploadUrl');
+    if (!canvas || !urlElement) return;
+    
+    let uploadUrl = null;
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/qrcode/server-url`, {
+            headers: getAuthHeaders()
+        });
+        const result = await response.json();
+        if (result.success && result.server_url) {
+            uploadUrl = `${result.server_url}/mobile/upload`;
+        }
+    } catch (error) {
+        console.warn('获取服务器地址失败:', error);
+    }
+    
+    if (!uploadUrl) {
+        urlElement.textContent = '无法获取服务器地址';
+        return;
+    }
+    
+    urlElement.textContent = uploadUrl;
+    
+    if (typeof QRCode === 'undefined' && typeof qrcode === 'undefined') {
+        if (img) {
+            img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=' + encodeURIComponent(uploadUrl);
+            img.style.display = 'block';
+            canvas.style.display = 'none';
+        }
+        return;
+    }
+    
+    const QR = QRCode || qrcode;
+    try {
+        const dataUrl = await QR.toDataURL(uploadUrl, { width: 180, margin: 1 });
+        if (img) {
+            img.src = dataUrl;
+            img.style.display = 'block';
+            canvas.style.display = 'none';
+        }
+    } catch (error) {
+        if (img) {
+            img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=' + encodeURIComponent(uploadUrl);
+            img.style.display = 'block';
+            canvas.style.display = 'none';
+        }
+    }
+}
+
+function startQRUploadPolling() {
+    if (qrUploadPollInterval) clearInterval(qrUploadPollInterval);
+    qrUploadPollInterval = setInterval(async function() {
+        try {
+            const since = Math.floor(qrUploadOpenedAt / 1000);
+            const response = await fetch(`${API_BASE_URL}/api/upload/status?since=${since}`, {
+                headers: getAuthHeaders()
+            });
+            const result = await response.json();
+            if (result.success && result.has_new) {
+                document.getElementById('qrUploadStatus').classList.remove('hidden');
+                document.getElementById('qrUploadStatusText').textContent = `已收到: ${result.filename || '新文件'}`;
+                clearInterval(qrUploadPollInterval);
+                
+                // 获取文件内容并显示预览，等待用户输入问题后手动发送
+                try {
+                        const fileResp = await fetch(`${API_BASE_URL}/api/upload/latest`, {
+                            headers: getAuthHeaders()
+                        });
+                        const fileResult = await fileResp.json();
+                    if (fileResult.success) {
+                        closeQRUploadModal();
+                        hideWelcome();
+                        if (fileResult.data.type === 'image') {
+                            // 图片文件：显示预览，等待用户输入问题
+                            const imgUrl = `${API_BASE_URL}${fileResult.data.url}`;
+                            selectedImage = {
+                                file: { name: fileResult.data.filename },
+                                base64: imgUrl
+                            };
+                            previewImage.src = imgUrl;
+                            imagePreview.classList.remove('hidden');
+                            fileUploadBtn.classList.add('text-blue-500');
+                            messageInput.placeholder = `已收到图片「${fileResult.data.filename}」，输入问题后发送...`;
+                            messageInput.focus();
+                        } else {
+                            // 文本文件：将内容放入输入框，等待用户编辑后发送
+                            const contentPreview = fileResult.data.content.substring(0, 500);
+                            const truncated = fileResult.data.content.length > 500 ? '...（内容已截断）' : '';
+                            messageInput.value = `以下是扫码上传的文件「${fileResult.data.filename}」的内容：\n\n${contentPreview}${truncated}\n\n请帮我分析这个文件。`;
+                            messageInput.focus();
+                        }
+                    }
+                } catch (e) {
+                    console.error('获取文件内容失败:', e);
+                }
+            }
+        } catch (e) {
+            // 忽略轮询错误
+        }
+    }, 3000);
+}
+
+document.getElementById('closeQrUploadModal').addEventListener('click', closeQRUploadModal);
+document.getElementById('qrUploadModal').addEventListener('click', function(e) {
+    if (e.target === document.getElementById('qrUploadModal')) {
+        closeQRUploadModal();
+    }
+});
+
+// 断开连接按钮
+document.getElementById('disconnectBtn').addEventListener('click', async function() {
+    try {
+        await fetch(`${API_BASE_URL}/api/qrcode/disconnect`, { 
+            method: 'POST', 
+            headers: getAuthHeaders()
+        });
+        // 清除轮询，避免立即重新检测到连接状态
+        if (statusPollInterval) clearInterval(statusPollInterval);
+        connectedUserId = null;
+        document.getElementById('qrCodeArea').classList.remove('hidden');
+        document.getElementById('connectedUserInfo').classList.add('hidden');
+        // 延迟生成二维码，给后端时间处理断开请求
+        setTimeout(generateQRCode, 500);
+    } catch (e) {
+        console.warn('断开连接失败:', e);
+    }
+});
+});
+</script>
+</body>
+</html>

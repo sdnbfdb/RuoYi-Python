@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录页面</title>
+<link href="https://static.mastergo.com/static/ai/resource/html/googleapis/css2" rel="stylesheet">
+<script src="https://static.mastergo.com/static/ai/resource/html/tailwind/tailwind.js"></script>
+<script>
+tailwind.config={
+theme:{
+extend:{
+colors:{
+primary: '#1E40AF',
+secondary: '#6B7280'
+},
+borderRadius:{
+'none':'0px',
+'sm':'2px',
+DEFAULT:'4px',
+'md':'8px',
+'lg':'12px',
+'xl':'16px',
+'2xl':'20px',
+'3xl':'24px',
+'full':'9999px',
+'button':'4px'
+}
+}
+}
+}
+</script>
+<style>
+body {
+min-height: 100vh;
+background-color: #FFFFFF;
+}
+.login-card {
+box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+.input-focus {
+outline: none;
+border-color: #1E40AF;
+box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+.button-hover:hover {
+background-color: #1E3A8A;
+}
+.password-toggle {
+cursor: pointer;
+}
+.fullscreen-container {
+display: flex;
+align-items: center;
+justify-content: center;
+min-height: 100vh;
+padding: 20px;
+}
+.error-message {
+color: #ef4444;
+font-size: 0.875rem;
+margin-top: 0.25rem;
+}
+</style>
+</head>
+<body class="bg-white">
+<!-- Navigation Bar -->
+<div id="nav-container"></div>
+<script>
+fetch('nav.html')
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById('nav-container').innerHTML = data;
+    });
+</script>
+<div class="fullscreen-container">
+<div class="w-full max-w-md">
+<div class="text-center mb-12">
+<div class="font-['Pacifico'] text-4xl font-bold text-gray-900 mb-2">logo</div>
+<h1 class="text-3xl font-bold text-gray-900 mb-2">登录</h1>
+<p class="text-gray-500">请输入您的账户信息</p>
+</div>
+<div class="bg-white rounded-xl border border-gray-200 login-card p-8">
+<form id="loginForm">
+<div class="mb-6">
+<label for="account" class="block text-sm font-medium text-gray-700 mb-2">账号</label>
+<input
+type="text"
+id="account"
+class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:input-focus transition-colors duration-200 text-sm"
+placeholder="请输入6位数字账号"
+required
+maxlength="6"
+>
+<div id="accountError" class="error-message hidden"></div>
+</div>
+<div class="mb-6">
+<label for="password" class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+<div class="relative">
+<input
+type="password"
+id="password"
+class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:input-focus transition-colors duration-200 text-sm"
+placeholder="请输入密码"
+required
+>
+<button
+type="button"
+class="absolute right-3 top-1/2 transform -translate-y-1/2 password-toggle"
+onclick="togglePassword()"
+>
+<i class="fas fa-eye text-gray-400 w-5 h-5 flex items-center justify-center"></i>
+</button>
+</div>
+<div id="passwordError" class="error-message hidden"></div>
+</div>
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center">
+<input
+id="remember"
+type="checkbox"
+class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+>
+<label for="remember" class="ml-2 block text-sm text-gray-700">记住账户</label>
+</div>
+<a href="#" class="text-sm text-primary hover:text-blue-800 transition-colors duration-200">忘记密码？</a>
+</div>
+<button
+type="submit"
+id="submitBtn"
+class="w-full bg-primary text-white py-3 px-4 rounded-lg hover:bg-blue-800 button-hover transition-colors duration-200 !rounded-button whitespace-nowrap text-base font-medium"
+>
+登录
+</button>
+<div id="loginError" class="error-message text-center mt-4 hidden"></div>
+</form>
+</div>
+<div class="text-center mt-6">
+<p class="text-gray-600">
+还没有账号？
+<a href="register.html" class="text-primary hover:text-blue-800 font-medium transition-colors duration-200">立即注册</a>
+</p>
+</div>
+</div>
+</div>
+<script type="module">
+import Auth from './auth.js';
+
+// 页面加载时检查是否已登录，已登录则跳转到首页
+if (Auth.isLoggedIn()) {
+    window.location.href = 'index.html';
+}
+
+// 记住账号功能
+const rememberCheckbox = document.getElementById('remember');
+const accountInput = document.getElementById('account');
+if (localStorage.getItem('remembered_account')) {
+    accountInput.value = localStorage.getItem('remembered_account');
+    rememberCheckbox.checked = true;
+}
+
+function togglePassword() {
+const passwordInput = document.getElementById('password');
+const eyeIcon = document.querySelector('.password-toggle i');
+if (passwordInput.type === 'password') {
+passwordInput.type = 'text';
+eyeIcon.className = 'fas fa-eye-slash text-gray-400 w-5 h-5 flex items-center justify-center';
+} else {
+passwordInput.type = 'password';
+eyeIcon.className = 'fas fa-eye text-gray-400 w-5 h-5 flex items-center justify-center';
+}
+}
+
+// 清除错误提示
+function clearErrors() {
+    document.getElementById('accountError').classList.add('hidden');
+    document.getElementById('passwordError').classList.add('hidden');
+    document.getElementById('loginError').classList.add('hidden');
+}
+
+// 显示错误提示
+function showError(field, message) {
+    const errorEl = document.getElementById(field + 'Error');
+    errorEl.textContent = message;
+    errorEl.classList.remove('hidden');
+}
+
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+e.preventDefault();
+clearErrors();
+
+const account = document.getElementById('account').value.trim();
+const password = document.getElementById('password').value;
+const remember = document.getElementById('remember').checked;
+const submitBtn = document.getElementById('submitBtn');
+
+// 验证
+if (!/^\d{6}$/.test(account)) {
+    showError('account', '请输入6位数字账号');
+    return;
+}
+
+if (!password) {
+    showError('password', '请输入密码');
+    return;
+}
+
+// 禁用按钮，显示加载状态
+submitBtn.disabled = true;
+submitBtn.textContent = '登录中...';
+
+try {
+    const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ account, password })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+        // 保存用户信息到 localStorage
+        const userData = data.data.user;
+        const token = data.data.token;
+        Auth.setUser(userData, token);
+        
+        // 记住账号
+        if (remember) {
+            localStorage.setItem('remembered_account', account);
+        } else {
+            localStorage.removeItem('remembered_account');
+        }
+        
+        alert('登录成功！');
+        console.log('用户信息:', userData);
+        
+        // 跳转到首页或来源页面
+        const redirectUrl = sessionStorage.getItem('redirectUrl') || 'index.html';
+        sessionStorage.removeItem('redirectUrl');
+        window.location.href = redirectUrl;
+    } else {
+        showError('login', data.message || '登录失败');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '登录';
+    }
+} catch (error) {
+    showError('login', '登录失败，请检查网络连接');
+    submitBtn.disabled = false;
+    submitBtn.textContent = '登录';
+}
+});
+
+// 输入时清除错误
+accountInput.addEventListener('input', () => clearErrors());
+document.getElementById('password').addEventListener('input', () => clearErrors());
+</script>
+<link rel="stylesheet" href="https://static.mastergo.com/static/ai/resource/html/font-awesome/css/all.min.css">
+</body>
+</html>
