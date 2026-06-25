@@ -9,12 +9,14 @@
 - **文档管理**：支持多格式文档（图片、Excel、Word等）的上传、解析和存储
 - **智能检索**：支持按标题、内容、标签等多维度搜索
 - **权限控制**：基于用户和组织的访问控制
+- **知识图谱**：可视化展示知识关系，支持鼠标滚轮缩放、拖动平移、节点交互
 
 ### 2. AI 智能体
 - **多类型Agent**：知识库助手、个人助手、NLP助手、全能助手
 - **工具调用**：集成搜索、表格分析、图片生成等多种工具
 - **LangChain集成**：基于 LangChain 的工具调用和Agent编排
 - **MCP支持**：Model Context Protocol 协议支持
+- **多智能体系统**：新增分析Agent、创意Agent、研究Agent、监督Agent等专门化智能体
 
 ### 3. NLP 表格处理
 - **表头向量化**：基于 BERT 的表头语义编码
@@ -152,6 +154,14 @@ ruoyi/
 │   │   │   ├── personal_agent.py  # 个人助手
 │   │   │   ├── nlp_agent.py       # NLP助手
 │   │   │   └── full_agent.py      # 全能助手
+│   │   ├── specialized/        # 专门化Agent（新增）
+│   │   │   ├── analysis_agent.py  # 分析Agent
+│   │   │   ├── creative_agent.py  # 创意Agent
+│   │   │   ├── knowledge_agent.py # 知识Agent
+│   │   │   └── research_agent.py  # 研究Agent
+│   │   ├── supervisor/         # 监督Agent（新增）
+│   │   │   └── supervisor_agent.py # 监督者Agent
+│   │   ├── multi_agent_system.py  # 多智能体系统（新增）
 │   │   ├── tools/             # LangChain工具
 │   │   │   ├── knowledge_tool.py   # 知识库工具
 │   │   │   ├── nlp_table_tool.py   # 表格分析工具
@@ -194,7 +204,9 @@ ruoyi/
 │   │
 │   ├── routes/                # API路由
 │   │   ├── chat_routes.py     # 聊天路由
-│   │   └── knowledge_routes.py # 知识库路由
+│   │   ├── knowledge_routes.py # 知识库路由
+│   │   ├── graph_routes.py    # 图谱路由（新增）
+│   │   └── multi_agent_routes.py # 多智能体路由（新增）
 │   │
 │   ├── layer/                 # 功能层
 │   │   └── user/             # 用户相关
@@ -217,7 +229,8 @@ ruoyi/
 │   ├── old/                   # 旧版兼容模块
 │   │   ├── api_call.py        # API调用封装
 │   │   ├── phone/link.py      # 移动端连接
-│   │   └── tool/tool.py       # 工具调用
+│   │   ├── tool/tool.py       # 工具调用
+│   │   └── Graph/             # 旧版图谱代码备份（新增）
 │   ├── uploads/              # 上传文件目录
 │   ├── chroma_db/             # ChromaDB持久化
 │   └── video/                # 视频处理
@@ -256,6 +269,19 @@ DELETE /api/chat/history/<id>        # 删除聊天历史
 GET  /api/langchain/agents            # 获取Agent列表
 GET  /api/langchain/tools             # 获取工具列表
 POST /api/langchain/chat             # Agent对话
+```
+
+### 知识图谱接口（新增）
+```
+GET  /api/graph/build                 # 构建知识图谱
+GET  /api/graph/status                # 获取图谱构建状态
+GET  /api/graph/data                  # 获取图谱数据
+```
+
+### 多智能体接口（新增）
+```
+POST /api/multi-agent/chat           # 多智能体协作对话
+GET  /api/multi-agent/status         # 获取智能体状态
 ```
 
 ### 移动端接口
