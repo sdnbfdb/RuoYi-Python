@@ -962,6 +962,25 @@ except ImportError as e:
     print(f"[WARN] LangChain路由注册失败: {e}")
     print("[INFO] 主应用仍可正常运行，LangChain功能将在依赖安装后启用")
 
+try:
+    from routes.graph_routes import register_graph_routes
+    register_graph_routes(app)
+    print("[INFO] GraphRAG路由注册成功")
+except ImportError as e:
+    print(f"[WARN] GraphRAG路由注册失败: {e}")
+    print("[INFO] 主应用仍可正常运行，GraphRAG功能将在依赖安装后启用")
+
+try:
+    from routes.multi_agent_routes import register_multi_agent_routes
+    register_multi_agent_routes(app)
+    print("[INFO] 多Agent协作路由注册成功")
+except ImportError as e:
+    print(f"[WARN] 多Agent协作路由注册失败: {e}")
+    print("[INFO] 主应用仍可正常运行，多Agent功能将在依赖安装后启用")
+except Exception as e:
+    print(f"[WARN] 多Agent协作路由注册异常: {e}")
+    print("[INFO] 主应用仍可正常运行")
+
 @app.route('/')
 def hello_world():
     return 'Hello, Flask!'

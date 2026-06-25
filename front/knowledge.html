@@ -73,11 +73,14 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="flex items-center space-x-4">
                 <h2 class="text-2xl font-bold text-gray-900">我的知识库</h2>
                 <span class="text-gray-600">共 <span id="total-count" class="font-semibold text-primary">12</span> 份资料</span>
-                <div class="flex space-x-2">
+                <div class="flex space-x-2 items-center">
                     <button onclick="filterMaterials('all')" class="filter-btn px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-blue-700 transition-colors" data-filter="all">全部</button>
                     <button onclick="filterMaterials('doc')" class="filter-btn px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors" data-filter="doc">文档</button>
                     <button onclick="filterMaterials('video')" class="filter-btn px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors" data-filter="video">视频</button>
                     <button onclick="filterMaterials('image')" class="filter-btn px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors" data-filter="image">图片</button>
+                    <button onclick="openGraphView()" class="filter-btn px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"><i class="fas fa-project-diagram mr-1"></i>查看图谱</button>
+                    <button id="buildGraphBtn" onclick="buildGraphIndex()" class="filter-btn px-3 py-1 text-sm text-orange-600 hover:bg-orange-50 rounded-md transition-colors border border-orange-200" title="构建知识图谱索引"><i class="fas fa-cogs mr-1"></i>构建图谱</button>
+                    <span id="graphStatusBadge" class="hidden text-xs px-2 py-0.5 rounded-full"></span>
                 </div>
             </div>
             
@@ -245,6 +248,49 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+<!-- 图谱查看模态框 -->
+<div id="graph-modal" class="fixed inset-0 z-50 hidden">
+    <div class="modal-overlay absolute inset-0" onclick="closeGraphModal()"></div>
+    <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+            <div class="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h3 class="text-xl font-semibold text-gray-900"><i class="fas fa-project-diagram mr-2"></i>知识图谱</h3>
+                <button onclick="closeGraphModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="graph-container" class="flex-1 overflow-hidden p-4" style="min-height: 500px;">
+                <canvas id="graphCanvas" class="w-full h-full"></canvas>
+            </div>
+            <div class="flex-shrink-0 bg-gray-50 px-6 py-3 flex justify-between items-center border-t border-gray-200">
+                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                    <span><i class="fas fa-circle text-blue-500 mr-1"></i>文档</span>
+                    <span><i class="fas fa-circle text-green-500 mr-1"></i>视频</span>
+                    <span><i class="fas fa-circle text-purple-500 mr-1"></i>图片</span>
+                    <span><i class="fas fa-circle text-gray-400 mr-1"></i>其他</span>
+                    <span class="mx-2 text-gray-300">|</span>
+                    <span id="graphBuildStatus" class="text-xs text-gray-400"><i class="fas fa-info-circle mr-1"></i>图谱状态: 未构建</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <button onclick="zoomOut()" class="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-l-lg transition-colors" title="缩小">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span id="zoomDisplay" class="px-3 py-1.5 text-sm text-gray-600 border-x border-gray-200 min-w-[60px] text-center">100%</span>
+                        <button onclick="zoomIn()" class="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-r-lg transition-colors" title="放大">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <button onclick="resetZoom()" class="px-3 py-1.5 text-gray-600 hover:bg-gray-100 bg-white rounded-lg border border-gray-200 shadow-sm transition-colors" title="重置视图">
+                        <i class="fas fa-compress"></i>
+                    </button>
+                    <span id="graph-stats" class="text-sm text-gray-500"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://static.mastergo.com/static/ai/resource/html/font-awesome/css/all.min.css"></script>
 <script>
 // Auth 已通过 script src 加载，无需 import
@@ -297,6 +343,9 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🔑 Token:', currentUserToken.substring(0, 20) + '...');
     
     renderMaterials();
+    
+    // 检查 GraphRAG 图谱状态
+    checkGraphStatus();
 });
 
 // 渲染资料列表
@@ -978,6 +1027,532 @@ function handleFileSelect(event) {
     });
 }
 
+// ==================== 图谱功能 ====================
+let graphNodes = [];
+let graphEdges = [];
+let graphDragging = null;
+let graphDragOffset = { x: 0, y: 0 };
+let graphHoverNode = null;
+let graphIsBuilding = false;
+let graphIsReady = false;
+let graphScale = 1;
+let graphTranslate = { x: 0, y: 0 };
+let graphPanning = false;
+let graphPanOffset = { x: 0, y: 0 };
+
+function openGraphView() {
+    const modal = document.getElementById('graph-modal');
+    modal.classList.remove('hidden');
+    loadGraphData();
+}
+
+function closeGraphModal() {
+    document.getElementById('graph-modal').classList.add('hidden');
+}
+
+// 检查图谱索引状态
+async function checkGraphStatus() {
+    try {
+        const response = await fetch(`${API_BASE}/graph/status`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${currentUserToken}` },
+            mode: 'cors'
+        });
+        const result = await response.json();
+        if (result.success) {
+            const status = result.data.status;
+            const badge = document.getElementById('graphStatusBadge');
+            const btn = document.getElementById('buildGraphBtn');
+            if (status === 'ready') {
+                graphIsReady = true;
+                badge.className = 'text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700';
+                badge.textContent = '已构建';
+                badge.classList.remove('hidden');
+                if (btn) { btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i>重建图谱'; btn.disabled = false; }
+            } else {
+                graphIsReady = false;
+                badge.className = 'text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500';
+                badge.textContent = '未构建';
+                badge.classList.remove('hidden');
+                if (btn) { btn.innerHTML = '<i class="fas fa-cogs mr-1"></i>构建图谱'; btn.disabled = false; }
+            }
+        }
+    } catch (error) {
+        console.warn('检查图谱状态失败:', error);
+    }
+}
+
+// 触发图谱索引构建
+async function buildGraphIndex() {
+    if (graphIsBuilding) return;
+    const btn = document.getElementById('buildGraphBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>构建中...';
+    btn.disabled = true;
+    graphIsBuilding = true;
+
+    try {
+        const response = await fetch(`${API_BASE}/graph/build`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${currentUserToken}`,
+                'Content-Type': 'application/json'
+            },
+            mode: 'cors'
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert(result.message + '\n\n构建过程需要几分钟，请稍后刷新页面查看状态。');
+            // 轮询检查状态
+            let pollCount = 0;
+            const pollInterval = setInterval(async () => {
+                pollCount++;
+                if (pollCount > 30) { 
+                    clearInterval(pollInterval); 
+                    graphIsBuilding = false;
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    checkGraphStatus();
+                    return; 
+                }
+                try {
+                    const statusRes = await fetch(`${API_BASE}/graph/status`, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${currentUserToken}` },
+                        mode: 'cors'
+                    });
+                    const statusResult = await statusRes.json();
+                    if (statusResult.success && statusResult.data.status === 'ready') {
+                        clearInterval(pollInterval);
+                        graphIsBuilding = false;
+                        graphIsReady = true;
+                        checkGraphStatus();
+                        alert('图谱索引构建完成！');
+                    }
+                } catch (e) {
+                    console.warn('轮询状态失败:', e);
+                }
+            }, 10000);
+        } else {
+            alert('构建失败: ' + result.message);
+            graphIsBuilding = false;
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    } catch (error) {
+        console.error('构建图谱失败:', error);
+        alert('构建请求失败: ' + error.message);
+        graphIsBuilding = false;
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+async function loadGraphData() {
+    const container = document.getElementById('graph-container');
+    container.innerHTML = '<canvas id="graphCanvas" class="w-full h-full"></canvas>';
+
+    // 先尝试从后端 GraphRAG API 获取真实图谱数据
+    if (graphIsReady) {
+        try {
+            await loadRealGraphData();
+            return;
+        } catch (e) {
+            console.warn('后端图谱数据加载失败，回退到本地模式:', e);
+        }
+    }
+
+    // 回退：从知识库列表构建简单图谱
+    try {
+        currentUserToken = getCurrentUserToken();
+        const response = await fetch(`${API_BASE}/knowledge/list?filter=all&search=&page=1&size=100`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${currentUserToken}` },
+            mode: 'cors'
+        });
+        const result = await response.json();
+        if (result.success) {
+            const allData = result.data.list || [];
+            buildGraphFromLocal(allData);
+            drawGraph();
+            document.getElementById('graph-stats').textContent = `共 ${graphNodes.length} 个节点，${graphEdges.length} 条关系 (本地模式)`;
+            document.getElementById('graphBuildStatus').innerHTML = '<i class="fas fa-info-circle mr-1"></i>图谱状态: 本地模式（点击"构建图谱"可生成智能图谱）';
+        }
+    } catch (error) {
+        console.error('加载图谱数据失败:', error);
+        container.innerHTML = '<div class="text-center text-gray-500 py-20">加载图谱数据失败，请确保后端服务已启动</div>';
+    }
+}
+
+// 从后端 GraphRAG API 加载真实图谱数据
+async function loadRealGraphData() {
+    currentUserToken = getCurrentUserToken();
+
+    // 并行获取实体和关系
+    const [entitiesRes, relationsRes] = await Promise.all([
+        fetch(`${API_BASE}/graph/entities`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${currentUserToken}` },
+            mode: 'cors'
+        }),
+        fetch(`${API_BASE}/graph/relationships`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${currentUserToken}` },
+            mode: 'cors'
+        })
+    ]);
+
+    const entitiesResult = await entitiesRes.json();
+    const relationsResult = await relationsRes.json();
+
+    if (entitiesResult.success && relationsResult.success) {
+        buildGraphFromBackend(entitiesResult.data.entities, relationsResult.data.relationships);
+        drawGraph();
+        document.getElementById('graph-stats').textContent = `共 ${graphNodes.length} 个节点，${graphEdges.length} 条关系 (GraphRAG)`;
+        document.getElementById('graphBuildStatus').innerHTML = '<i class="fas fa-check-circle mr-1 text-green-500"></i>图谱状态: GraphRAG 智能图谱';
+    } else {
+        throw new Error('后端数据返回失败');
+    }
+}
+
+// 使用后端实体和关系数据构建图谱
+function buildGraphFromBackend(entities, relationships) {
+    graphNodes = [];
+    graphEdges = [];
+    const canvasW = document.getElementById('graph-container').clientWidth || 900;
+    const canvasH = document.getElementById('graph-container').clientHeight || 500;
+    const centerX = canvasW / 2, centerY = canvasH / 2;
+
+    // 按类型分组
+    const typeGroups = {};
+    entities.forEach(e => {
+        const t = e.type || '其他';
+        if (!typeGroups[t]) typeGroups[t] = [];
+        typeGroups[t].push(e);
+    });
+
+    // 中心节点
+    graphNodes.push({ id: 'root', label: '知识库', x: centerX, y: centerY, color: '#1e293b', radius: 35, type: 'root' });
+
+    // 类型分类节点（环形布局）
+    const typeNames = Object.keys(typeGroups);
+    const typeAngle = (2 * Math.PI) / Math.max(typeNames.length, 1);
+    const typeNodeMap = {};
+    const typeColorsMap = {};
+    const palette = ['#3b82f6', '#22c55e', '#a855f7', '#f59e0b', '#ef4444', '#14b8a6', '#6366f1', '#ec4899'];
+
+    typeNames.forEach((typeName, idx) => {
+        const angle = idx * typeAngle;
+        const dist = 180;
+        const tx = centerX + Math.cos(angle) * dist;
+        const ty = centerY + Math.sin(angle) * dist;
+        const typeNodeId = `type_${typeName}`;
+        const color = palette[idx % palette.length];
+        typeColorsMap[typeName] = color;
+        graphNodes.push({ id: typeNodeId, label: typeName, x: tx, y: ty, color: color, radius: 28, type: 'category' });
+        graphEdges.push({ source: 'root', target: typeNodeId });
+        typeNodeMap[typeName] = typeNodeId;
+    });
+
+    // 实体节点
+    const entityNodeMap = {};
+    typeNames.forEach((typeName, tIdx) => {
+        const items = typeGroups[typeName];
+        const angle = tIdx * typeAngle;
+        items.forEach((item, i) => {
+            const ia = angle + (i - items.length / 2) * 0.25;
+            const idist = 320 + (i % 3) * 40;
+            const ix = centerX + Math.cos(ia) * idist;
+            const iy = centerY + Math.sin(ia) * idist;
+            const nodeId = `entity_${item.id}`;
+            entityNodeMap[item.name || item.id] = nodeId;
+            graphNodes.push({
+                id: nodeId,
+                label: item.name || item.id,
+                x: ix,
+                y: iy,
+                color: typeColorsMap[typeName],
+                radius: 16 + (item.rank || 0) * 2,
+                type: 'entity',
+                data: item
+            });
+            graphEdges.push({ source: typeNodeMap[typeName], target: nodeId });
+        });
+    });
+
+    // 关系连线
+    relationships.forEach(rel => {
+        const sourceId = entityNodeMap[rel.source];
+        const targetId = entityNodeMap[rel.target];
+        if (sourceId && targetId) {
+            graphEdges.push({
+                source: sourceId,
+                target: targetId,
+                label: rel.type || '',
+                weight: rel.weight || 1
+            });
+        }
+    });
+}
+
+// 本地简单图谱（回退模式）
+function buildGraphFromLocal(data) {
+    graphNodes = [];
+    graphEdges = [];
+    const typeColors = { doc: '#3b82f6', video: '#22c55e', image: '#a855f7', other: '#9ca3af' };
+    const typeLabels = { doc: '文档', video: '视频', image: '图片', other: '其他' };
+    const canvasW = document.getElementById('graph-container').clientWidth || 900;
+    const canvasH = document.getElementById('graph-container').clientHeight || 500;
+    const centerX = canvasW / 2, centerY = canvasH / 2;
+
+    // 中心节点
+    graphNodes.push({ id: 'root', label: '知识库', x: centerX, y: centerY, color: '#1e293b', radius: 35, type: 'root' });
+
+    // 类型分类节点
+    const types = {};
+    data.forEach(item => {
+        const t = item.type || 'other';
+        if (!types[t]) types[t] = [];
+        types[t].push(item);
+    });
+
+    const typeAngle = (2 * Math.PI) / Math.max(Object.keys(types).length, 1);
+    let typeIdx = 0;
+    const typeNodeMap = {};
+
+    for (const [type, items] of Object.entries(types)) {
+        const angle = typeIdx * typeAngle;
+        const dist = 180;
+        const tx = centerX + Math.cos(angle) * dist;
+        const ty = centerY + Math.sin(angle) * dist;
+        const typeNodeId = `type_${type}`;
+        graphNodes.push({ id: typeNodeId, label: typeLabels[type] || type, x: tx, y: ty, color: typeColors[type] || '#9ca3af', radius: 25, type: 'category' });
+        graphEdges.push({ source: 'root', target: typeNodeId });
+        typeNodeMap[type] = typeNodeId;
+
+        // 资料节点
+        items.forEach((item, i) => {
+            const ia = angle + (i - items.length / 2) * 0.3;
+            const idist = 320;
+            const ix = centerX + Math.cos(ia) * idist;
+            const iy = centerY + Math.sin(ia) * idist;
+            graphNodes.push({ id: item.id, label: item.title || '未命名', x: ix, y: iy, color: typeColors[type] || '#9ca3af', radius: 18, type: 'item', data: item });
+            graphEdges.push({ source: typeNodeId, target: item.id });
+        });
+        typeIdx++;
+    }
+}
+
+function drawGraph() {
+    const canvas = document.getElementById('graphCanvas');
+    const container = document.getElementById('graph-container');
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight || 500;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.translate(canvas.width / 2 + graphTranslate.x, canvas.height / 2 + graphTranslate.y);
+    ctx.scale(graphScale, graphScale);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+    // 画连线
+    graphEdges.forEach(edge => {
+        const source = graphNodes.find(n => n.id === edge.source);
+        const target = graphNodes.find(n => n.id === edge.target);
+        if (source && target) {
+            const isHovered = graphHoverNode && (source.id === graphHoverNode || target.id === graphHoverNode);
+            ctx.beginPath();
+            ctx.moveTo(source.x, source.y);
+            ctx.lineTo(target.x, target.y);
+            ctx.strokeStyle = isHovered ? '#60a5fa' : '#e2e8f0';
+            const weight = edge.weight || 1;
+            const baseWidth = isHovered ? 1.2 : 0.5;
+            ctx.lineWidth = Math.min(baseWidth + weight * 0.1, baseWidth * 2) / graphScale;
+            ctx.stroke();
+
+            // 关系标签
+            if (edge.label) {
+                const mx = (source.x + target.x) / 2;
+                const my = (source.y + target.y) / 2;
+                ctx.fillStyle = isHovered ? '#3b82f6' : '#94a3b8';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(edge.label, mx, my - 3);
+            }
+        }
+    });
+
+    // 画节点
+    graphNodes.forEach(node => {
+        const isHovered = graphHoverNode === node.id;
+        const r = isHovered ? node.radius + 4 : node.radius;
+
+        // 阴影
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r + 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+        ctx.fill();
+
+        // 节点圆
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = node.color;
+        ctx.fill();
+
+        // 标签
+        ctx.fillStyle = '#1e293b';
+        ctx.font = `${node.type === 'root' ? 'bold 14px' : node.type === 'category' ? 'bold 12px' : '11px'} sans-serif`;
+        ctx.textAlign = 'center';
+        const labelY = node.y + r + 16;
+        ctx.fillText(node.label, node.x, labelY);
+    });
+
+    ctx.restore();
+}
+
+function zoomIn() {
+    const newScale = Math.min(3, graphScale * 1.2);
+    const centerX = document.getElementById('graphCanvas').width / 2;
+    const centerY = document.getElementById('graphCanvas').height / 2;
+    graphTranslate.x = centerX / (newScale / graphScale) - (centerX - graphTranslate.x) / graphScale;
+    graphTranslate.y = centerY / (newScale / graphScale) - (centerY - graphTranslate.y) / graphScale;
+    graphScale = newScale;
+    drawGraph();
+    updateZoomDisplay();
+}
+
+function zoomOut() {
+    const newScale = Math.max(0.3, graphScale / 1.2);
+    const centerX = document.getElementById('graphCanvas').width / 2;
+    const centerY = document.getElementById('graphCanvas').height / 2;
+    graphTranslate.x = centerX / (newScale / graphScale) - (centerX - graphTranslate.x) / graphScale;
+    graphTranslate.y = centerY / (newScale / graphScale) - (centerY - graphTranslate.y) / graphScale;
+    graphScale = newScale;
+    drawGraph();
+    updateZoomDisplay();
+}
+
+function resetZoom() {
+    graphScale = 1;
+    graphTranslate = { x: 0, y: 0 };
+    drawGraph();
+    updateZoomDisplay();
+}
+
+function updateZoomDisplay() {
+    const zoomEl = document.getElementById('zoomDisplay');
+    if (zoomEl) {
+        zoomEl.textContent = Math.round(graphScale * 100) + '%';
+    }
+}
+
+// Canvas 交互
+document.addEventListener('DOMContentLoaded', function() {
+    const canvas = document.getElementById('graphCanvas');
+    if (!canvas) return;
+
+    function screenToGraph(sx, sy) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (sx - rect.left - canvas.width / 2 - graphTranslate.x) / graphScale + canvas.width / 2;
+        const y = (sy - rect.top - canvas.height / 2 - graphTranslate.y) / graphScale + canvas.height / 2;
+        return { x, y };
+    }
+
+    canvas.addEventListener('mousemove', function(e) {
+        if (graphPanning) {
+            graphTranslate.x = e.clientX - graphPanOffset.x;
+            graphTranslate.y = e.clientY - graphPanOffset.y;
+            drawGraph();
+            return;
+        }
+
+        if (graphDragging) {
+            const pos = screenToGraph(e.clientX, e.clientY);
+            graphDragging.x = pos.x - graphDragOffset.x;
+            graphDragging.y = pos.y - graphDragOffset.y;
+            drawGraph();
+            return;
+        }
+
+        const pos = screenToGraph(e.clientX, e.clientY);
+        let hit = null;
+        for (const node of graphNodes) {
+            const dx = pos.x - node.x, dy = pos.y - node.y;
+            if (dx * dx + dy * dy < (node.radius + 5) * (node.radius + 5)) {
+                hit = node.id;
+                break;
+            }
+        }
+        if (hit !== graphHoverNode) {
+            graphHoverNode = hit;
+            canvas.style.cursor = hit ? 'pointer' : 'grab';
+            drawGraph();
+        }
+    });
+
+    canvas.addEventListener('mousedown', function(e) {
+        const pos = screenToGraph(e.clientX, e.clientY);
+        for (const node of graphNodes) {
+            const dx = pos.x - node.x, dy = pos.y - node.y;
+            if (dx * dx + dy * dy < (node.radius + 5) * (node.radius + 5)) {
+                graphDragging = node;
+                graphDragOffset = { x: pos.x - node.x, y: pos.y - node.y };
+                return;
+            }
+        }
+        graphPanning = true;
+        graphPanOffset = { x: e.clientX - graphTranslate.x, y: e.clientY - graphTranslate.y };
+        canvas.style.cursor = 'grabbing';
+    });
+
+    canvas.addEventListener('mouseup', function() {
+        graphDragging = null;
+        graphPanning = false;
+        canvas.style.cursor = 'grab';
+    });
+
+    canvas.addEventListener('mouseleave', function() {
+        graphDragging = null;
+        graphPanning = false;
+        graphHoverNode = null;
+        canvas.style.cursor = 'grab';
+        drawGraph();
+    });
+
+    canvas.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        const newScale = Math.max(0.2, Math.min(5, graphScale * delta));
+        
+        const oldGraphX = (mouseX - canvas.width / 2 - graphTranslate.x) / graphScale + canvas.width / 2;
+        const oldGraphY = (mouseY - canvas.height / 2 - graphTranslate.y) / graphScale + canvas.height / 2;
+        
+        graphScale = newScale;
+        
+        graphTranslate.x = mouseX - canvas.width / 2 - (oldGraphX - canvas.width / 2) * graphScale;
+        graphTranslate.y = mouseY - canvas.height / 2 - (oldGraphY - canvas.height / 2) * graphScale;
+        
+        drawGraph();
+        updateZoomDisplay();
+    }, { passive: false });
+
+    canvas.addEventListener('dblclick', function(e) {
+        const pos = screenToGraph(e.clientX, e.clientY);
+        for (const node of graphNodes) {
+            const dx = pos.x - node.x, dy = pos.y - node.y;
+            if (dx * dx + dy * dy < (node.radius + 5) * (node.radius + 5) && node.type === 'item' && node.data) {
+                closeGraphModal();
+                viewMaterial(node.data.id);
+                break;
+            }
+        }
+    });
+});
+
 // 将所有需要被 HTML 调用的函数暴露到全局作用域
 window.openAddModal = openAddModal;
 window.closeModal = closeModal;
@@ -995,6 +1570,10 @@ window.goToPage = goToPage;
 window.toggleMenu = toggleMenu;
 window.closeViewModal = closeViewModal;
 window.saveMaterial = saveMaterial;
+window.openGraphView = openGraphView;
+window.closeGraphModal = closeGraphModal;
+window.buildGraphIndex = buildGraphIndex;
+window.checkGraphStatus = checkGraphStatus;
 
 console.log('✅ 所有全局函数已注册');
 </script>
