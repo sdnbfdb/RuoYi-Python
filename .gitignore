@@ -1,0 +1,113 @@
+# Environment variables (IMPORTANT: Never commit .env files!)
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/ 
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Data files (can be tracked if needed)
+# *.csv
+# *.xlsx
+# *.xls
+*.npy
+# *.json
+
+# Model cache and vectors
+model_cache/
+vector_db/
+
+# Output directories
+output/
+*/output/
+
+# IDE configuration
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# Uploaded files (exclude from version control)
+uploads/
+image/
+!image/.gitkeep
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# pytest
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+
+# Node modules (if any frontend tools)
+node_modules/
+
+# Qoder cache
+.qoder/
+
+# Runtime data
+back/old/phone/connected_users.json
+back/old/phone/history/
+back/old/phone/output/
+back/old/data/
+back/old/AIuser/photo/
+back/old/AIuser/video/
+
+# Test scripts generated during debugging
+test_script*.js
+test_*.txt
+test_*.py
+!back/test/
+inspect_*.py
+inspect_*.txt
+
+# Frontend test files
+front/test_agent.js

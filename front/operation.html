@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>操作记录管理系统</title>
+    <link href="https://static.mastergo.com/static/ai/resource/html/googleapis/css2" rel="stylesheet">
+    <script src="https://static.mastergo.com/static/ai/resource/html/tailwind/tailwind.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#6B7280'
+                    },
+                    borderRadius: {
+                        'none': '0px',
+                        'sm': '2px',
+                        DEFAULT: '4px',
+                        'md': '8px',
+                        'lg': '12px',
+                        'xl': '16px',
+                        '2xl': '20px',
+                        '3xl': '24px',
+                        'full': '9999px',
+                        'button': '4px'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://static.mastergo.com/static/ai/resource/html/font-awesome/css/all.min.css">
+    <style>
+        body {
+            min-height: 1024px;
+            background-color: #ffffff;
+        }
+        .search-input::placeholder {
+            color: #9CA3AF;
+        }
+        .status-badge {
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .record-card {
+            transition: all 0.2s ease;
+        }
+        .record-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .pagination-button {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="bg-white">
+<!-- Navigation Bar -->
+<div id="nav-container"></div>
+<script src="./auth.js"></script>
+<script>
+// 等待DOM和auth.js加载完成后再执行
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('nav.html')
+        .then(response => response.text())
+        .then(data => {
+            document.getElementById('nav-container').innerHTML = data;
+            setTimeout(renderNavAuth, 0);
+        })
+        .catch(error => {
+            console.error('导航栏加载失败:', error);
+        });
+});
+
+function renderNavAuth() {
+    const el = document.getElementById('auth-section');
+    if (!el) {
+        console.warn('auth-section元素未找到');
+        return;
+    }
+    
+    if (typeof Auth === 'undefined') {
+        console.error('Auth对象未定义，请确保auth.js已正确加载');
+        return;
+    }
+    
+    if (Auth.isLoggedIn()) {
+        const name = Auth.getUserName() || Auth.getAccount();
+        el.innerHTML = `<div class="flex items-center space-x-3"><span class="text-gray-600 text-sm">欢迎，<span class="font-medium text-gray-900">${name}</span></span><a href="my.html" class="px-3 py-1.5 rounded-lg hover:bg-gray-100 text-sm text-gray-700 transition-colors">个人中心</a><button onclick="if(confirm('确定退出？'))Auth.logout()" class="text-gray-500 hover:text-red-500 transition-colors"><i class="fas fa-sign-out-alt"></i></button></div>`;
+    } else {
+        el.innerHTML = `<a href="login.html" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">登录</a>`;
+    }
+}
+</script>
+    <div class="max-w-7xl mx-auto px-6 py-8">
+        <div class="mb-8">
+            <h1 class="text-2xl font-semibold text-gray-900 mb-2">操作记录管理</h1>
+            <p class="text-gray-600">管理和查看系统中的所有操作记录</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                <div class="flex flex-col sm:flex-row gap-4 flex-1">
+                    <div class="relative flex-1 max-w-md">
+                        <input type="text" placeholder="搜索记录名称、ID或操作人" class="w-full bg-gray-50 px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm search-input">
+                        <i class="fa fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 flex items-center justify-center"></i>
+                    </div>
+                    <div class="relative">
+                        <button class="bg-white border border-gray-300 px-4 py-2 rounded-md text-gray-700 text-sm flex items-center space-x-2 hover:bg-gray-50">
+                            <i class="fa fa-calendar w-4 h-4 flex items-center justify-center"></i>
+                            <span>时间范围</span>
+                            <i class="fa fa-chevron-down w-4 h-4 flex items-center justify-center ml-2"></i>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <button class="bg-white border border-gray-300 px-4 py-2 rounded-md text-gray-700 text-sm flex items-center space-x-2 hover:bg-gray-50">
+                            <span>状态</span>
+                            <i class="fa fa-chevron-down w-4 h-4 flex items-center justify-center ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+                <button class="bg-primary text-white px-6 py-2 rounded-md !rounded-button whitespace-nowrap flex items-center space-x-2 hover:bg-blue-600 transition-colors">
+                    <i class="fa fa-plus w-4 h-4 flex items-center justify-center"></i>
+                    <span>创建新记录</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">记录名称</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作类型</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建人</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">用户权限更新</div>
+                                <div class="text-sm text-gray-500">REC-2024-001</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">权限管理</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">张伟</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-15 14:30:22</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="status-badge bg-green-100 text-green-800 rounded-full">成功</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button class="text-primary hover:text-blue-700 mr-4">
+                                    <i class="fa fa-eye w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800 mr-4">
+                                    <i class="fa fa-edit w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800">
+                                    <i class="fa fa-ellipsis-v w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">数据备份任务</div>
+                                <div class="text-sm text-gray-500">REC-2024-002</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">数据管理</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">李娜</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-15 11:20:15</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="status-badge bg-yellow-100 text-yellow-800 rounded-full">进行中</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button class="text-primary hover:text-blue-700 mr-4">
+                                    <i class="fa fa-eye w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800 mr-4">
+                                    <i class="fa fa-edit w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800">
+                                    <i class="fa fa-ellipsis-v w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">系统配置修改</div>
+                                <div class="text-sm text-gray-500">REC-2024-003</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">系统配置</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">王强</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-14 16:45:33</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="status-badge bg-red-100 text-red-800 rounded-full">失败</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button class="text-primary hover:text-blue-700 mr-4">
+                                    <i class="fa fa-eye w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800 mr-4">
+                                    <i class="fa fa-edit w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800">
+                                    <i class="fa fa-ellipsis-v w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">用户注册审核</div>
+                                <div class="text-sm text-gray-500">REC-2024-004</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">用户管理</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">陈静</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-14 09:15:47</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="status-badge bg-green-100 text-green-800 rounded-full">成功</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button class="text-primary hover:text-blue-700 mr-4">
+                                    <i class="fa fa-eye w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800 mr-4">
+                                    <i class="fa fa-edit w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800">
+                                    <i class="fa fa-ellipsis-v w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">API接口测试</div>
+                                <div class="text-sm text-gray-500">REC-2024-005</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">接口管理</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">刘洋</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024-01-13 13:20:11</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="status-badge bg-blue-100 text-blue-800 rounded-full">待处理</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button class="text-primary hover:text-blue-700 mr-4">
+                                    <i class="fa fa-eye w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800 mr-4">
+                                    <i class="fa fa-edit w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800">
+                                    <i class="fa fa-ellipsis-v w-4 h-4 flex items-center justify-center"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="bg-white px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    显示第 <span class="font-medium">1</span> 到 <span class="font-medium">5</span> 条记录，共 <span class="font-medium">24</span> 条
+                </div>
+                <div class="flex items-center space-x-2">
+                    <select class="border border-gray-300 rounded px-3 py-1 text-sm">
+                        <option>10 条/页</option>
+                        <option>20 条/页</option>
+                        <option>50 条/页</option>
+                    </select>
+                    <button class="pagination-button border border-gray-300 rounded text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fa fa-chevron-left w-4 h-4 flex items-center justify-center"></i>
+                    </button>
+                    <button class="pagination-button bg-primary text-white rounded">1</button>
+                    <button class="pagination-button border border-gray-300 rounded text-gray-600 hover:bg-gray-50">2</button>
+                    <button class="pagination-button border border-gray-300 rounded text-gray-600 hover:bg-gray-50">3</button>
+                    <button class="pagination-button border border-gray-300 rounded text-gray-600 hover:bg-gray-50">
+                        <i class="fa fa-chevron-right w-4 h-4 flex items-center justify-center"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailDrawer" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+        <div class="absolute right-0 top-0 h-full w-96 bg-white shadow-xl transform transition-transform duration-300 translate-x-full">
+            <div class="h-full flex flex-col">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">记录详情</h3>
+                    <button id="closeDetail" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa fa-times w-6 h-6 flex items-center justify-center"></i>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500 mb-2">基本信息</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">记录名称</span>
+                                <span class="text-sm font-medium">用户权限更新</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">记录 ID</span>
+                                <span class="text-sm font-mono">REC-2024-001</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">操作类型</span>
+                                <span class="text-sm font-medium">权限管理</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">创建人</span>
+                                <span class="text-sm font-medium">张伟</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">创建时间</span>
+                                <span class="text-sm font-medium">2024-01-15 14:30:22</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">状态</span>
+                                <span class="status-badge bg-green-100 text-green-800 rounded-full">成功</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500 mb-2">详细信息</h4>
+                        <div class="bg-gray-50 p-4 rounded-md">
+                            <p class="text-sm text-gray-700">本次操作更新了用户李明的系统访问权限，新增了数据查看权限，并移除了敏感操作权限。操作已成功应用到系统中。</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500 mb-2">操作日志</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium">操作开始</p>
+                                    <p class="text-xs text-gray-500">2024-01-15 14:30:22</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium">权限验证完成</p>
+                                    <p class="text-xs text-gray-500">2024-01-15 14:30:25</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium">权限更新成功</p>
+                                    <p class="text-xs text-gray-500">2024-01-15 14:30:30</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3">
+                                <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium">操作完成</p>
+                                    <p class="text-xs text-gray-500">2024-01-15 14:30:32</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-t border-gray-200 p-6 flex justify-end space-x-3">
+                    <button class="border border-gray-300 px-4 py-2 rounded-md text-gray-700 hover:bg-gray-50">
+                        打印
+                    </button>
+                    <button class="bg-primary text-white px-4 py-2 rounded-md !rounded-button whitespace-nowrap">
+                        导出报告
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const detailDrawer = document.getElementById('detailDrawer');
+            const closeDetail = document.getElementById('closeDetail');
+            const viewButtons = document.querySelectorAll('.fa-eye');
+            viewButtons.forEach(button => {
+                button.parentElement.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    detailDrawer.classList.remove('hidden');
+                    setTimeout(() => {
+                        detailDrawer.querySelector('div[style*="translate-x"]').style.transform = 'translate-x-0';
+                    }, 10);
+                });
+            });
+
+            closeDetail.addEventListener('click', function() {
+                detailDrawer.querySelector('div[style*="translate-x"]').style.transform = 'translate-x-full';
+                setTimeout(() => {
+                    detailDrawer.classList.add('hidden');
+                }, 300);
+            });
+            detailDrawer.addEventListener('click', function(e) {
+                if (e.target === detailDrawer) {
+                    closeDetail.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

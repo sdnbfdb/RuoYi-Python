@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识库</title>
+    <script src="https://static.mastergo.com/static/ai/resource/html/tailwind/tailwind.js"></script>
+    <link href="https://static.mastergo.com/static/ai/resource/html/googleapis/css2" rel="stylesheet">
+    <link rel="stylesheet" href="https://static.mastergo.com/static/ai/resource/html/font-awesome/css/all.min.css">
+    <style>
+        body {
+            min-height: 1024px;
+            background-color: white;
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .editor-container {
+            min-height: 300px;
+        }
+        .material-card:hover {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        .empty-state-img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="bg-white font-sans">
+<!-- 导航栏直接内嵌，避免 file:// 协议下 fetch 失败 -->
+<nav class="bg-white border-b border-gray-200 px-8 py-4">
+<div class="flex items-center justify-between max-w-7xl mx-auto">
+<div class="flex items-center space-x-10">
+<div class="text-2xl font-['Pacifico'] text-gray-800">logo</div>
+<div class="flex space-x-8">
+<a href="index.html" class="text-gray-600 hover:text-gray-900 font-medium">首页</a>
+<a href="agent.html" class="text-gray-600 hover:text-gray-900 font-medium">智能体</a>
+<a href="knowledge.html" class="text-primary hover:text-blue-700 font-medium">知识库</a>
+<a href="operation.html" class="text-gray-600 hover:text-gray-900 font-medium">操作</a>
+<a href="my.html" class="text-gray-600 hover:text-gray-900 font-medium">用户</a>
+</div>
+</div>
+<div id="auth-section" class="flex items-center space-x-4">
+<!-- 动态填充 -->
+</div>
+</div>
+</nav>
+
+<script src="./auth.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const el = document.getElementById('auth-section');
+    if (!el || typeof Auth === 'undefined') return;
+    if (Auth.isLoggedIn()) {
+        const name = Auth.getUserName() || Auth.getAccount();
+        el.innerHTML = `<div class="flex items-center space-x-3"><span class="text-gray-600 text-sm">欢迎，<span class="font-medium text-gray-900">${name}</span></span><a href="my.html" class="px-3 py-1.5 rounded-lg hover:bg-gray-100 text-sm text-gray-700 transition-colors">个人中心</a><button onclick="if(confirm('确定退出？'))Auth.logout()" class="text-gray-500 hover:text-red-500 transition-colors"><i class="fas fa-sign-out-alt"></i></button></div>`;
+    } else {
+        el.innerHTML = `<a href="login.html" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">登录</a>`;
+    }
+});
+</script>
+
+<main class="pt-20 pb-8">
+    <div class="max-w-7xl mx-auto px-6">
+        <!-- 标题和操作栏 -->
+        <div class="mb-6 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <h2 class="text-2xl font-bold text-gray-900">我的知识库</h2>
+                <span class="text-gray-600">共 <span id="total-count" class="font-semibold text-primary">12</span> 份资料</span>
+                <div class="flex space-x-2">
+                    <button onclick="filterMaterials('all')" class="filter-btn px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-blue-700 transition-colors" data-filter="all">全部</button>
+                    <button onclick="filterMaterials('doc')" class="filter-btn px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors" data-filter="doc">文档</button>
+                    <button onclick="filterMaterials('video')" class="filter-btn px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors" data-filter="video">视频</button>
+                    <button onclick="filterMaterials('image')" class="filter-btn px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors" data-filter="image">图片</button>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <!-- 搜索框 -->
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        id="searchInput"
+                        placeholder="搜索知识库..." 
+                        onkeyup="handleSearch(event)"
+                        class="search-input pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-transparent w-64"
+                    >
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+                
+                <!-- 添加资料按钮 -->
+                <button 
+                    onclick="openAddModal()"
+                    class="!rounded-button whitespace-nowrap bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+                >
+                    <i class="fas fa-plus"></i>
+                    <span>添加资料</span>
+                </button>
+                
+                <!-- 视图切换 -->
+                <div class="flex space-x-1 border border-gray-300 rounded-lg p-1">
+                    <button onclick="setViewMode('list')" id="listViewBtn" class="p-2 text-white bg-primary rounded hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-list"></i>
+                    </button>
+                    <button onclick="setViewMode('grid')" id="gridViewBtn" class="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 资料列表 -->
+        <div id="materials-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 资料卡片会通过 JavaScript 动态加载 -->
+        </div>
+
+        <!-- 空状态 -->
+        <div id="empty-state" class="hidden text-center py-16">
+            <svg class="empty-state-img mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">暂无资料</h3>
+            <p class="text-gray-500 mb-4">点击上方"添加资料"按钮创建您的第一份知识库资料</p>
+            <button onclick="openAddModal()" class="!rounded-button whitespace-nowrap bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                <i class="fas fa-plus mr-2"></i>添加资料
+            </button>
+        </div>
+
+        <!-- 分页 -->
+        <div id="pagination" class="mt-8 flex justify-center items-center space-x-2">
+            <button onclick="changePage('prev')" class="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50" id="prevPageBtn">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div id="pageNumbers" class="flex space-x-1">
+                <!-- 页码动态生成 -->
+            </div>
+            <button onclick="changePage('next')" class="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50" id="nextPageBtn">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</main>
+
+<!-- 添加/编辑资料模态框 -->
+<div id="material-modal" class="fixed inset-0 z-50 hidden">
+    <div class="modal-overlay absolute inset-0" onclick="closeModal()"></div>
+    <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+            <!-- 模态框头部 -->
+            <div class="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h3 id="modal-title" class="text-xl font-semibold text-gray-900">添加资料</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- 模态框内容 -->
+            <form id="material-form" class="flex-1 overflow-y-auto p-6 space-y-6" onsubmit="return false">
+                <input type="hidden" id="material-id" value="">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">上传文件 <span class="text-red-500">*</span></label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer" onclick="document.getElementById('file-input').click()">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                        <p class="text-lg text-gray-600 mb-2">点击或拖拽文件到此区域上传</p>
+                        <p class="text-sm text-gray-400">支持 PDF、Word、Excel、PPT、图片、视频等格式，单个文件不超过 10MB</p>
+                        <input type="file" id="file-input" class="hidden" multiple onchange="handleFileSelect(event)" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.png,.jpg,.jpeg,.gif,.mp4,.mp3">
+                    </div>
+                    <div id="file-list" class="mt-4 space-y-3"></div>
+                </div>
+            </form>
+            
+            <!-- 模态框底部 -->
+            <div class="flex-shrink-0 bg-gray-50 px-6 py-4 flex justify-end space-x-3 border-t border-gray-200">
+                <button 
+                    type="button"
+                    onclick="closeModal()"
+                    class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors !rounded-button whitespace-nowrap"
+                >
+                    取消
+                </button>
+                <button 
+                    type="button"
+                    onclick="saveMaterial()"
+                    class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors !rounded-button whitespace-nowrap"
+                >
+                    保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 查看资料模态框 -->
+<div id="view-modal" class="fixed inset-0 z-50 hidden">
+    <div class="modal-overlay absolute inset-0" onclick="closeViewModal()"></div>
+    <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h3 id="view-title" class="text-xl font-semibold text-gray-900">查看资料</h3>
+                <button onclick="closeViewModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="view-content" class="p-6 prose max-w-none">
+                <!-- 内容动态填充 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认对话框 -->
+<div id="delete-confirm-dialog" class="fixed inset-0 z-50 hidden">
+    <div class="modal-overlay absolute inset-0" onclick="cancelDelete()"></div>
+    <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">确认删除</h3>
+                <p class="text-sm text-gray-500 mb-6">您确定要删除这份资料吗？此操作不可撤销。</p>
+                <div class="flex justify-center space-x-3">
+                    <button 
+                        onclick="cancelDelete()"
+                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors !rounded-button whitespace-nowrap"
+                    >
+                        取消
+                    </button>
+                    <button 
+                        onclick="confirmDelete()"
+                        class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors !rounded-button whitespace-nowrap"
+                    >
+                        删除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://static.mastergo.com/static/ai/resource/html/font-awesome/css/all.min.css"></script>
+<script>
+// Auth 已通过 script src 加载，无需 import
+
+const API_BASE = 'http://localhost:5000/api';
+
+// 从 auth.js 获取正确的 Token
+function getCurrentUserToken() {
+    const token = Auth.getToken();
+    if (token) {
+        console.log('✅ 使用真实Token:', token.substring(0, 20) + '...');
+        return token;
+    }
+    
+    console.warn('⚠️ 未找到Token，使用默认Token');
+    return 'mock_token_12345';
+}
+
+// 初始化 Token
+let currentUserToken = getCurrentUserToken();
+
+// 监听登录状态变化（支持多标签页同步）
+window.addEventListener('storage', function(event) {
+    if (event.key === 'ruoyi_token') {
+        currentUserToken = getCurrentUserToken();
+        console.log('🔄 Token已更新');
+    }
+});
+
+let currentFilter = 'all';
+let currentSearch = '';
+let currentPage = 1;
+let itemsPerPage = 6;
+let currentViewMode = 'grid';
+let deleteTargetId = null;
+let materialsData = [];
+let totalItems = 0;
+
+// 页面初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 检查登录状态
+    if (!Auth.isLoggedIn()) {
+        alert('请先登录后再访问知识库！');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    console.log('✅ 用户已登录，开始加载知识库...');
+    console.log('👤 当前用户:', Auth.getUserName());
+    console.log('🔑 Token:', currentUserToken.substring(0, 20) + '...');
+    
+    renderMaterials();
+});
+
+// 渲染资料列表
+async function renderMaterials() {
+    const container = document.getElementById('materials-container');
+    const emptyState = document.getElementById('empty-state');
+    
+    // 每次请求前刷新Token
+    currentUserToken = getCurrentUserToken();
+    
+    console.log('🔄 开始加载资料列表...');
+    console.log('📍 API地址:', `${API_BASE}/knowledge/list`);
+    console.log('🔑 Token前20位:', currentUserToken.substring(0, 20) + '...');
+    
+    try {
+        const url = `${API_BASE}/knowledge/list?filter=${currentFilter}&search=${encodeURIComponent(currentSearch)}&page=${currentPage}&size=${itemsPerPage}`;
+        console.log('🌐 请求URL:', url);
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${currentUserToken}`
+            },
+            mode: 'cors'
+        });
+        
+        console.log('📥 收到响应:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ 解析响应成功:', result.success);
+        
+        if (!result.success) {
+            throw new Error(result.message || '获取数据失败');
+        }
+        
+        materialsData = result.data.list || [];
+        totalItems = result.data.total || 0;
+        const totalPages = result.data.pages || 0;
+        
+        console.log('📊 数据解析结果:', {
+            listLength: materialsData.length,
+            totalItems: totalItems,
+            totalPages: totalPages,
+            firstItem: materialsData[0] ? materialsData[0].title : '无'
+        });
+        
+        // 更新总数
+        const totalCountEl = document.getElementById('total-count');
+        if (totalCountEl) {
+            totalCountEl.textContent = totalItems;
+            console.log('✅ 更新总数显示:', totalItems);
+        } else {
+            console.warn('⚠️ 找不到 total-count 元素');
+        }
+        
+        if (materialsData.length === 0) {
+            console.log('📭 数据为空，显示空状态');
+            container.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        
+        console.log('🎨 开始生成卡片...');
+        emptyState.classList.add('hidden');
+        
+        // 更新分页控件
+        updatePagination(currentPage, totalPages);
+        
+        // 生成卡片 HTML
+        const cardsHTML = materialsData.map(item => createMaterialCard(item)).join('');
+        console.log('📝 生成HTML长度:', cardsHTML.length);
+        container.innerHTML = cardsHTML;
+        console.log('✅ 卡片渲染完成');
+        
+    } catch (error) {
+        console.error('❌ 加载资料列表失败:', error);
+        console.error('错误详情:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+        });
+        
+        // 显示详细的错误信息
+        let errorDetails = error.message;
+        if (error.message.includes('Failed to fetch')) {
+            errorDetails = '无法连接到后端服务\n\n' +
+                '可能原因:\n' +
+                '1. 后端服务未启动 (python app.py)\n' +
+                '2. 后端端口被占用\n' +
+                '3. 网络连接问题\n\n' +
+                '原始错误: ' + error.message;
+        }
+        
+        container.innerHTML = `
+            <div class="col-span-full text-center py-16">
+                <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                <p class="text-gray-600 mb-2">加载失败</p>
+                <pre class="text-sm text-gray-400 whitespace-pre-wrap text-left max-w-2xl mx-auto bg-gray-50 p-4 rounded">${errorDetails}</pre>
+                <button onclick="renderMaterials()" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600">
+                    重试
+                </button>
+            </div>
+        `;
+    }
+}
+
+// 创建资料卡片
+function createMaterialCard(item) {
+    console.log('🎴 创建卡片:', item.title, 'ID:', item.id);
+    
+    const typeConfig = {
+        doc: { icon: 'fa-file-alt', color: 'blue', label: '文档' },
+        video: { icon: 'fa-video', color: 'green', label: '视频' },
+        image: { icon: 'fa-image', color: 'purple', label: '图片' },
+        other: { icon: 'fa-folder', color: 'gray', label: '其他' }
+    };
+    
+    const config = typeConfig[item.type] || typeConfig.other;
+    
+    // 安全获取字段（处理不同命名规范）
+    const title = item.title || '未命名';
+    const createdAt = item.created_at || item.createdAt || '-';
+    const description = item.description || '';
+    const size = item.size_display || item.size || '-';
+    const tags = item.tags || [];
+    
+    return `
+        <div class="material-card bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-all duration-300 cursor-pointer" onclick="viewMaterial('${item.id}')">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-${config.color}-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <i class="fas ${config.icon} text-${config.color}-600"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h3 class="font-semibold text-gray-900 truncate">${title}</h3>
+                        <p class="text-sm text-gray-500">${createdAt}</p>
+                    </div>
+                </div>
+                <div class="relative flex-shrink-0 ml-2" onclick="event.stopPropagation()">
+                    <button onclick="toggleMenu('menu-${item.id}')" class="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <div id="menu-${item.id}" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                        <button onclick="viewMaterial('${item.id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
+                            <i class="fas fa-eye w-4"></i>
+                            <span>查看</span>
+                        </button>
+                        <button onclick="editMaterial('${item.id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2">
+                            <i class="fas fa-edit w-4"></i>
+                            <span>编辑</span>
+                        </button>
+                        <button onclick="deleteMaterial('${item.id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2">
+                            <i class="fas fa-trash w-4"></i>
+                            <span>删除</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <p class="text-gray-600 text-sm mb-4 line-clamp-3">${description}</p>
+            <div class="flex items-center justify-between">
+                <div class="flex flex-wrap gap-1">
+                    ${tags.map(tag => `<span class="inline-block px-2 py-1 bg-${config.color}-100 text-${config.color}-800 text-xs rounded-full">${tag}</span>`).join('')}
+                </div>
+                <span class="text-xs text-gray-500">${size}</span>
+            </div>
+        </div>
+    `;
+}
+
+// 筛选资料
+function filterMaterials(type) {
+    currentFilter = type;
+    currentPage = 1;
+    
+    // 更新筛选按钮状态
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        if (btn.dataset.filter === type) {
+            btn.className = 'filter-btn px-3 py-1 text-sm bg-primary text-white rounded-md hover:bg-blue-700 transition-colors';
+        } else {
+            btn.className = 'filter-btn px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors';
+        }
+    });
+    
+    renderMaterials();
+}
+
+// 搜索处理
+function handleSearch(event) {
+    if (event.key === 'Enter') {
+        currentSearch = event.target.value.trim();
+        currentPage = 1;
+        renderMaterials();
+    }
+}
+
+// 视图模式切换
+function setViewMode(mode) {
+    currentViewMode = mode;
+    const container = document.getElementById('materials-container');
+    const listBtn = document.getElementById('listViewBtn');
+    const gridBtn = document.getElementById('gridViewBtn');
+    
+    if (mode === 'list') {
+        container.className = 'space-y-4';
+        listBtn.className = 'p-2 text-white bg-primary rounded hover:bg-blue-600 transition-colors';
+        gridBtn.className = 'p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors';
+    } else {
+        container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+        listBtn.className = 'p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors';
+        gridBtn.className = 'p-2 text-white bg-primary rounded hover:bg-blue-600 transition-colors';
+    }
+    
+    renderMaterials();
+}
+
+// 分页控制
+function updatePagination(current, total) {
+    const pageNumbers = document.getElementById('pageNumbers');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    
+    prevBtn.disabled = current <= 1;
+    nextBtn.disabled = current >= total;
+    
+    let html = '';
+    for (let i = 1; i <= total; i++) {
+        if (i === current) {
+            html += `<button class="px-3 py-2 bg-primary text-white rounded-lg">${i}</button>`;
+        } else {
+            html += `<button onclick="goToPage(${i})" class="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">${i}</button>`;
+        }
+    }
+    pageNumbers.innerHTML = html;
+}
+
+function changePage(direction) {
+    if (direction === 'prev' && currentPage > 1) {
+        currentPage--;
+    } else if (direction === 'next') {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+        }
+    }
+    renderMaterials();
+}
+
+function goToPage(page) {
+    currentPage = page;
+    renderMaterials();
+}
+
+// 菜单切换
+function toggleMenu(menuId) {
+    // 关闭所有其他菜单
+    document.querySelectorAll('[id^="menu-"]').forEach(menu => {
+        if (menu.id !== menuId) {
+            menu.classList.add('hidden');
+        }
+    });
+    
+    // 切换当前菜单
+    const menu = document.getElementById(menuId);
+    menu.classList.toggle('hidden');
+}
+
+// 点击外部关闭菜单
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('[id^="menu-"]') && !event.target.closest('.fa-ellipsis-v')) {
+        document.querySelectorAll('[id^="menu-"]').forEach(menu => {
+            menu.classList.add('hidden');
+        });
+    }
+});
+
+// 打开添加模态框
+function openAddModal() {
+    document.getElementById('modal-title').textContent = '上传资料';
+    document.getElementById('material-form').reset();
+    document.getElementById('material-id').value = '';
+    document.getElementById('file-list').innerHTML = '';
+    document.getElementById('material-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+// 关闭模态框
+function closeModal() {
+    document.getElementById('material-modal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// 查看资料
+async function viewMaterial(id) {
+    try {
+        const response = await fetch(`${API_BASE}/knowledge/${id}`, {
+            method: 'GET',
+            mode: 'cors'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.message || '获取资料详情失败');
+        }
+        
+        const material = result.data;
+        const sizeDisplay = material.size_display || (material.total_size ? `${(material.total_size/1024).toFixed(1)} KB` : '未知');
+        
+        document.getElementById('view-title').textContent = material.title;
+        document.getElementById('view-content').innerHTML = `
+            <div class="mb-6 pb-6 border-b border-gray-200">
+                <div class="flex items-center space-x-4 text-sm text-gray-500 mb-4">
+                    <span><i class="fas fa-calendar-alt mr-2"></i>${material.created_at}</span>
+                    <span><i class="fas fa-file mr-2"></i>${sizeDisplay}</span>
+                    ${material.updated_at && material.updated_at !== material.created_at ? `<span><i class="fas fa-edit mr-2"></i>更新于 ${material.updated_at}</span>` : ''}
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    ${material.tags.map(tag => `<span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">${tag}</span>`).join('')}
+                </div>
+                ${material.attachments && material.attachments.length > 0 ? `
+                    <div class="mt-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">附件 (${material.attachment_count})</h4>
+                        <div class="space-y-2">
+                            ${material.attachments.map(att => `
+                                <a href="http://localhost:5000${att.url}" target="_blank" 
+                                   class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-paperclip text-gray-400"></i>
+                                        <span class="text-sm text-gray-700">${att.filename}</span>
+                                    </div>
+                                    <span class="text-xs text-gray-500">${att.size_display}</span>
+                                </a>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+            <div class="prose max-w-none">
+                <p class="text-gray-700 mb-4">${material.description}</p>
+                <div class="mt-6">${material.content || '<p class="text-gray-500">暂无详细内容</p>'}</div>
+            </div>
+            ${material.qa_records && material.qa_records.length > 0 ? `
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                        <i class="fas fa-comments mr-2"></i>问答记录 (${material.qa_records.length})
+                    </h4>
+                    <div class="space-y-4">
+                        ${material.qa_records.map((qa, index) => `
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-start space-x-3 mb-3">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                        Q${index + 1}
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-gray-900 font-medium mb-1">${qa.question}</p>
+                                        <p class="text-xs text-gray-500">
+                                            <i class="fas fa-clock mr-1"></i>${qa.created_at}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex items-start space-x-3 ml-11">
+                                    <div class="flex-shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                        A
+                                    </div>
+                                    <div class="flex-1 text-gray-700 prose prose-sm max-w-none">
+                                        ${qa.answer || '<p class="text-gray-400 italic">暂无回答</p>'}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '<div class="mt-8 border-t border-gray-200 pt-6"><p class="text-gray-500 text-center"><i class="fas fa-comments mr-2"></i>暂无问答记录</p></div>'}
+        `;
+        
+        document.getElementById('view-modal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+    } catch (error) {
+        console.error('查看资料失败:', error);
+        alert('加载资料详情失败: ' + error.message);
+    }
+}
+
+// 关闭查看模态框
+function closeViewModal() {
+    document.getElementById('view-modal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// 编辑资料
+async function editMaterial(id) {
+    try {
+        const response = await fetch(`${API_BASE}/knowledge/${id}`, {
+            method: 'GET',
+            mode: 'cors'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.message || '获取资料失败');
+        }
+        
+        const material = result.data;
+        
+        document.getElementById('modal-title').textContent = '编辑资料 - ' + (material.title || '');
+        document.getElementById('material-id').value = material.id;
+        document.getElementById('file-list').innerHTML = '';
+        
+        if (material.attachments && material.attachments.length > 0) {
+            const fileList = document.getElementById('file-list');
+            material.attachments.forEach(att => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'flex items-center justify-between p-4 bg-gray-50 rounded-lg';
+                fileItem.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-file text-primary text-xl"></i>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">${att.filename}</p>
+                            <p class="text-xs text-gray-500">${att.size_display} · 已上传</p>
+                        </div>
+                    </div>
+                    <span class="text-xs text-green-600">已上传</span>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+        
+        document.getElementById('material-modal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        
+    } catch (error) {
+        console.error('加载编辑数据失败:', error);
+        alert('加载资料信息失败: ' + error.message);
+    }
+}
+
+// 保存资料
+async function saveMaterial() {
+    const id = document.getElementById('material-id').value;
+    
+    // 每次保存前刷新Token
+    currentUserToken = getCurrentUserToken();
+    
+    console.log('📤 保存资料，当前Token:', currentUserToken.substring(0, 20) + '...');
+    
+    const fileInput = document.getElementById('file-input');
+    const files = fileInput ? Array.from(fileInput.files) : [];
+    
+    if (!id && files.length === 0) {
+        alert('请选择要上传的文件');
+        return;
+    }
+    
+    try {
+        let result;
+        
+        if (id) {
+            // 编辑模式 - 只上传新文件
+            const formData = new FormData();
+            
+            if (files.length > 0) {
+                for (let file of files) {
+                    formData.append('files', file);
+                }
+            }
+            
+            const response = await fetch(`${API_BASE}/knowledge/update/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${currentUserToken}`
+                },
+                body: formData,
+                mode: 'cors'
+            });
+            
+            result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.message || `服务器错误 (${response.status})`);
+            }
+            
+        } else {
+            // 创建模式 - 从第一个文件获取标题和类型
+            const firstFile = files[0];
+            
+            // 自动从文件名提取标题（去掉扩展名）
+            const title = firstFile.name.replace(/\.[^/.]+$/, '');
+            
+            // 根据扩展名自动判断类型
+            const ext = firstFile.name.split('.').pop().toLowerCase();
+            const docExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md'];
+            const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg'];
+            const videoExts = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv'];
+            
+            let type = 'other';
+            if (docExts.includes(ext)) type = 'doc';
+            else if (imageExts.includes(ext)) type = 'image';
+            else if (videoExts.includes(ext)) type = 'video';
+            
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('type', type);
+            formData.append('description', `上传的${type === 'doc' ? '文档' : type === 'image' ? '图片' : type === 'video' ? '视频' : '文件'}：${firstFile.name}`);
+            formData.append('content', '');
+            
+            for (let file of files) {
+                formData.append('files', file);
+            }
+            
+            // 调试日志
+            console.log('📤 创建资料请求详情:');
+            console.log('   URL:', `${API_BASE}/knowledge/create`);
+            console.log('   Method:', 'POST');
+            console.log('   Token:', currentUserToken.substring(0, 20) + '...');
+            console.log('   Title:', title);
+            console.log('   Type:', type);
+            console.log('   Files:', files.map(f => f.name));
+            
+            // 删除不必要的 headers 配置，让浏览器自动处理
+            const response = await fetch(`${API_BASE}/knowledge/create`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${currentUserToken}`
+                    // 注意：不要设置 Content-Type，让浏览器自动处理 FormData
+                },
+                body: formData,
+                mode: 'cors',
+                credentials: 'include'  // 添加这个以确保发送凭证
+            });
+            
+            console.log('📥 创建资料响应状态:', response.status, response.statusText);
+            console.log('📥 响应头:', Object.fromEntries(response.headers.entries()));
+            
+            // 先获取响应文本
+            const responseText = await response.text();
+            console.log('📥 响应文本:', responseText);
+            
+            // 再解析 JSON
+            result = JSON.parse(responseText);
+            console.log('📥 解析后的结果:', result);
+            
+            if (!response.ok) {
+                throw new Error(result.message || `服务器错误 (${response.status})`);
+            }
+        }
+        
+        if (!result.success) {
+            throw new Error(result.message || '操作失败');
+        }
+        
+        closeModal();
+        
+        // 重新加载数据（回到第一页）
+        currentPage = 1;
+        await renderMaterials();
+        
+        alert(id ? '资料更新成功！' : '资料添加成功！');
+        
+    } catch (error) {
+        console.error('保存失败:', error);
+        console.error('错误详情:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+        });
+        
+        let errorMsg = '保存失败';
+        if (error.message.includes('Failed to fetch')) {
+            errorMsg = '网络连接失败：无法连接到后端服务\n\n可能的原因：\n1. 后端服务未启动 (python app.py)\n2. 后端地址配置错误 (当前: http://localhost:5000)\n3. 防火墙阻止了请求';
+        } else if (error.message.includes('HTTP 401')) {
+            errorMsg = '未授权访问，请先登录';
+        } else if (error.message.includes('HTTP 400')) {
+            errorMsg = '请求参数错误：' + (result?.message || '请检查文件格式和大小');
+        } else if (error.message.includes('HTTP 413')) {
+            errorMsg = '文件太大，请选择小于10MB的文件';
+        } else if (error.message.includes('HTTP')) {
+            errorMsg = `服务器错误: ${error.message}`;
+        } else {
+            errorMsg = `保存失败: ${error.message}`;
+        }
+        
+        alert(errorMsg);
+    }
+}
+
+// 删除资料
+function deleteMaterial(id) {
+    deleteTargetId = id;
+    document.getElementById('delete-confirm-dialog').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function cancelDelete() {
+    deleteTargetId = null;
+    document.getElementById('delete-confirm-dialog').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+async function confirmDelete() {
+    if (!deleteTargetId) return;
+    
+    // 每次删除前刷新Token
+    currentUserToken = getCurrentUserToken();
+    
+    console.log('🗑️ 删除资料，当前Token:', currentUserToken.substring(0, 20) + '...');
+    
+    try {
+        const response = await fetch(`${API_BASE}/knowledge/delete/${deleteTargetId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${currentUserToken}`,
+                'Content-Type': 'application/json'
+            },
+            mode: 'cors'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.message || '删除失败');
+        }
+        
+        cancelDelete();
+        
+        // 重新加载当前页数据
+        await renderMaterials();
+        
+        alert('删除成功！');
+        
+    } catch (error) {
+        console.error('删除失败:', error);
+        alert('删除失败: ' + error.message);
+    }
+}
+
+// 文件选择处理
+function handleFileSelect(event) {
+    const files = event.target.files;
+    const fileList = document.getElementById('file-list');
+    
+    Array.from(files).forEach(file => {
+        const fileSize = file.size > 1024 * 1024 
+            ? (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+            : (file.size / 1024).toFixed(2) + ' KB';
+        
+        const fileItem = document.createElement('div');
+        fileItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+        fileItem.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-file text-gray-400"></i>
+                <div>
+                    <p class="text-sm font-medium text-gray-900">${file.name}</p>
+                    <p class="text-xs text-gray-500">${fileSize}</p>
+                </div>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        fileList.appendChild(fileItem);
+    });
+}
+
+// 将所有需要被 HTML 调用的函数暴露到全局作用域
+window.openAddModal = openAddModal;
+window.closeModal = closeModal;
+window.viewMaterial = viewMaterial;
+window.editMaterial = editMaterial;
+window.deleteMaterial = deleteMaterial;
+window.confirmDelete = confirmDelete;
+window.cancelDelete = cancelDelete;
+window.changePage = changePage;
+window.setViewMode = setViewMode;
+window.handleFileSelect = handleFileSelect;
+window.filterMaterials = filterMaterials;
+window.renderMaterials = renderMaterials;
+window.goToPage = goToPage;
+window.toggleMenu = toggleMenu;
+window.closeViewModal = closeViewModal;
+window.saveMaterial = saveMaterial;
+
+console.log('✅ 所有全局函数已注册');
+</script>
+</body>
+</html>

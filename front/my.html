@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人中心</title>
+<link href="https://static.mastergo.com/static/ai/resource/html/googleapis/css2" rel="stylesheet">
+<script src="https://static.mastergo.com/static/ai/resource/html/tailwind/tailwind.js"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#3B82F6',secondary:'#6B7280'},borderRadius:{'none':'0px','sm':'2px',DEFAULT:'4px','md':'8px','lg':'12px','xl':'16px','2xl':'20px','3xl':'24px','full':'9999px','button':'4px'}}}}</script>
+<style>
+body {
+min-height: 1024px;
+background-color: #FFFFFF;
+}
+.card-shadow {
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.ghost-button {
+background-color: transparent;
+border: 1px solid #E5E7EB;
+}
+.ghost-button:hover {
+background-color: #F9FAFB;
+}
+.loading {
+opacity: 0.7;
+pointer-events: none;
+}
+</style>
+</head>
+<body class="bg-white">
+<!-- Navigation Bar -->
+<div id="nav-container"></div>
+<script src="./auth.js"></script>
+<script>
+// 等待DOM和auth.js加载完成后再执行
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('nav.html')
+        .then(response => response.text())
+        .then(data => {
+            document.getElementById('nav-container').innerHTML = data;
+            setTimeout(renderNavAuth, 0);
+        })
+        .catch(error => {
+            console.error('导航栏加载失败:', error);
+        });
+});
+
+function renderNavAuth() {
+    const el = document.getElementById('auth-section');
+    if (!el) {
+        console.warn('auth-section元素未找到');
+        return;
+    }
+    
+    if (typeof Auth === 'undefined') {
+        console.error('Auth对象未定义，请确保auth.js已正确加载');
+        return;
+    }
+    
+    if (Auth.isLoggedIn()) {
+        const name = Auth.getUserName() || Auth.getAccount();
+        el.innerHTML = `<div class="flex items-center space-x-3"><span class="text-gray-600 text-sm">欢迎，<span class="font-medium text-gray-900">${name}</span></span><a href="my.html" class="px-3 py-1.5 rounded-lg hover:bg-gray-100 text-sm text-gray-700 transition-colors">个人中心</a><button onclick="if(confirm('确定退出？'))Auth.logout()" class="text-gray-500 hover:text-red-500 transition-colors"><i class="fas fa-sign-out-alt"></i></button></div>`;
+    } else {
+        el.innerHTML = `<a href="login.html" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">登录</a>`;
+    }
+}
+</script>
+<!-- 主内容区域 -->
+<main class="pt-20 pb-8">
+<!-- 用户信息卡片 -->
+<section class="mx-auto max-w-6xl px-4 mt-6">
+<div class="bg-white rounded-xl card-shadow p-6">
+<div class="flex items-center space-x-4">
+<div class="relative">
+<img id="avatarImg" src="https://static.mastergo.com/ai/img_res/1778469691761a3K9mP2xQ7vN4rT8wY.jpg"
+alt="用户头像" class="w-16 h-16 rounded-full object-cover">
+<button onclick="window.location.href='edit.html'" class="absolute bottom-0 right-0 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors" title="修改头像">
+<i class="fas fa-camera text-xs"></i>
+</button>
+</div>
+<div class="flex-1">
+<h2 id="userName" class="text-xl font-semibold text-gray-900">加载中...</h2>
+<p id="userAccount" class="text-sm text-gray-600">ID: -</p>
+<div class="flex items-center space-x-4 mt-2">
+<div id="positionDisplay" class="text-center">
+<p class="text-lg font-bold text-gray-900">-</p>
+<p class="text-xs text-gray-600">我的职位</p>
+</div>
+</div>
+</div>
+<a href="edit.html" id="editBtn" class="bg-primary text-white px-4 py-2 rounded-lg !rounded-button whitespace-nowrap flex items-center space-x-2 hover:bg-blue-600 transition-colors">
+<i class="fas fa-edit text-sm"></i>
+<span class="text-sm">修改信息</span>
+</a>
+</div>
+</div>
+</section>
+<!-- 设置选项 -->
+<section class="mx-auto max-w-6xl px-4 mt-6">
+<div class="bg-white rounded-lg border border-gray-100">
+<div class="p-4 border-b border-gray-100">
+<h3 class="text-base font-semibold text-gray-900">通用设置</h3>
+</div>
+<div class="divide-y divide-gray-100">
+<a href="#" class="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+<div class="flex items-center space-x-3">
+<i class="fas fa-users text-xl text-gray-600"></i>
+<span class="text-sm text-gray-700">管理用户</span>
+</div>
+<i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+</a>
+<a href="organization.html" class="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+<div class="flex items-center space-x-3">
+<i class="fas fa-building text-xl text-primary"></i>
+<span class="text-sm text-gray-700 font-medium">组织架构</span>
+</div>
+<i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+</a>
+<a href="knowledge.html" class="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+<div class="flex items-center space-x-3">
+<i class="fas fa-book text-xl text-primary"></i>
+<span class="text-sm text-gray-700 font-medium">我的知识库</span>
+</div>
+<i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+</a>
+<a href="#" class="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+<div class="flex items-center space-x-3">
+<i class="fas fa-bell text-xl text-gray-600"></i>
+<span class="text-sm text-gray-700">消息通知</span>
+</div>
+<i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+</a>
+<a href="#" class="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+<div class="flex items-center space-x-3">
+<i class="fas fa-question-circle text-xl text-gray-600"></i>
+<span class="text-sm text-gray-700">帮助中心</span>
+</div>
+<i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+</a>
+</div>
+</div>
+</section>
+<!-- 退出登录按钮 -->
+<section class="mx-auto max-w-6xl px-4 mt-6">
+<button id="logoutBtn" onclick="handleLogout()" class="w-full py-3 ghost-button rounded-lg text-red-600 font-medium hover:bg-red-50 transition-colors !rounded-button whitespace-nowrap">
+<i class="fas fa-sign-out-alt mr-2"></i>退出登录
+</button>
+</section>
+<!-- 版权信息 -->
+<footer class="mt-8 text-center">
+<p class="text-xs text-gray-400">© 2024 个人中心. All rights reserved.</p>
+</footer>
+</main>
+<script src="https://static.mastergo.com/static/ai/resource/html/font-awesome/css/all.min.css"></script>
+<script type="module">
+import Auth from './auth.js';
+
+// 页面加载时检查登录状态
+document.addEventListener('DOMContentLoaded', function() {
+    if (!Auth.isLoggedIn()) {
+        // 未登录，跳转到登录页
+        alert('请先登录！');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // 显示用户信息
+    loadUserInfo();
+});
+
+// 加载用户信息
+async function loadUserInfo() {
+    const user = Auth.getUser();
+    const defaultAvatar = 'https://static.mastergo.com/ai/img_res/1778469691761a3K9mP2xQ7vN4rT8wY.jpg';
+    
+    if (user) {
+        document.getElementById('userName').textContent = user.name || user.username || '用户';
+        document.getElementById('userAccount').textContent = `账号: ${user.account}`;
+        
+        // 显示本地缓存中的头像（如果有）
+        if (user.image) {
+            document.getElementById('avatarImg').src = user.image.startsWith('http') ? user.image : `http://localhost:5000${user.image}`;
+        }
+    }
+    
+    // 从后端获取最新用户信息（包含头像）
+    try {
+        const account = user ? user.account : '123456';
+        const response = await fetch(`http://localhost:5000/api/auth/info?account=${account}`, {
+            method: 'GET',
+            credentials: 'include',
+            mode: 'cors'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+                // 更新本地存储的用户信息
+                Auth.setUser(data.data, Auth.getToken());
+                
+                // 更新页面显示 - 用户名和账号
+                document.getElementById('userName').textContent = data.data.name || data.data.username || '用户';
+                document.getElementById('userAccount').textContent = `账号: ${data.data.account}`;
+                
+                // 更新头像显示
+                const avatarImg = document.getElementById('avatarImg');
+                if (data.data.image && data.data.image.trim() !== '') {
+                    // 如果有头像URL，显示上传的头像
+                    avatarImg.src = data.data.image.startsWith('http') ? data.data.image : `http://localhost:5000${data.data.image}`;
+                    avatarImg.onerror = function() {
+                        // 图片加载失败时显示默认头像
+                        this.src = defaultAvatar;
+                        console.warn('Avatar load failed, using default');
+                    };
+                } else {
+                    // 没有头像，显示默认头像
+                    avatarImg.src = defaultAvatar;
+                }
+                
+                // 更新职位显示
+                const positionDisplay = document.getElementById('positionDisplay');
+                if (positionDisplay && data.data.role_level) {
+                    positionDisplay.querySelector('p:first-child').textContent = data.data.role_level;
+                }
+                
+                console.log('User info loaded successfully:', data.data);
+            }
+        }
+    } catch (error) {
+        console.log('获取用户信息失败，使用本地缓存:', error.message);
+    }
+}
+
+// 退出登录
+window.handleLogout = function() {
+    if (confirm('确定要退出登录吗？')) {
+        Auth.logout();
+    }
+};
+</script>
+</body>
+</html>

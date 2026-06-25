@@ -1,0 +1,120 @@
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang="zh-CN"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;测试上传&lt;/title&gt;
+    &lt;style&gt;
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .container { border: 2px solid #4CAF50; padding: 20px; border-radius: 8px; }
+        h1 { color: #4CAF50; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #45a049; }
+        #result { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        pre { background-color: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class="container"&gt;
+        &lt;h1&gt;📤 最简单的上传测试&lt;/h1&gt;
+        &lt;p&gt;测试后端 API 是否正常工作&lt;/p&gt;
+        
+        &lt;div class="form-group"&gt;
+            &lt;label for="title"&gt;标题：&lt;/label&gt;
+            &lt;input type="text" id="title" value="测试标题"&gt;
+        &lt;/div&gt;
+        
+        &lt;div class="form-group"&gt;
+            &lt;label for="file"&gt;选择文件：&lt;/label&gt;
+            &lt;input type="file" id="file"&gt;
+        &lt;/div&gt;
+        
+        &lt;button onclick="testUpload()"&gt;测试上传&lt;/button&gt;
+        
+        &lt;div id="result"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        async function testUpload() {
+            const titleInput = document.getElementById('title');
+            const fileInput = document.getElementById('file');
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = '&lt;div&gt;⏳ 正在上传...&lt;/div&gt;';
+            
+            console.log('🚀 开始测试上传...');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                resultDiv.innerHTML = '&lt;div class="error"&gt;❌ 请先选择文件！&lt;/div&gt;';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            console.log('📁 选中的文件:', file.name, file.size, file.type);
+            
+            const formData = new FormData();
+            formData.append('title', titleInput.value);
+            formData.append('type', 'doc');
+            formData.append('description', '测试上传');
+            formData.append('files', file);
+            
+            console.log('📤 准备发送请求到:', 'http://localhost:5000/api/knowledge/create');
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/knowledge/create', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer mock_token_12345'
+                    },
+                    body: formData
+                });
+                
+                console.log('📥 响应状态:', response.status, response.statusText);
+                console.log('📥 响应头:', Object.fromEntries(response.headers.entries()));
+                
+                const responseText = await response.text();
+                console.log('📥 响应文本:', responseText);
+                
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (e) {
+                    result = { raw: responseText };
+                }
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        &lt;div class="success"&gt;
+                            &lt;h3&gt;✅ 上传成功！&lt;/h3&gt;
+                            &lt;pre&gt;${JSON.stringify(result, null, 2)}&lt;/pre&gt;
+                        &lt;/div&gt;
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        &lt;div class="error"&gt;
+                            &lt;h3&gt;❌ 上传失败&lt;/h3&gt;
+                            &lt;p&gt;状态码: ${response.status}&lt;/p&gt;
+                            &lt;pre&gt;${JSON.stringify(result, null, 2)}&lt;/pre&gt;
+                        &lt;/div&gt;
+                    `;
+                }
+            } catch (error) {
+                console.error('❌ 错误:', error);
+                resultDiv.innerHTML = `
+                    &lt;div class="error"&gt;
+                        &lt;h3&gt;❌ 发生错误&lt;/h3&gt;
+                        &lt;p&gt;${error.message}&lt;/p&gt;
+                        &lt;pre&gt;${error.stack}&lt;/pre&gt;
+                    &lt;/div&gt;
+                `;
+            }
+        }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
