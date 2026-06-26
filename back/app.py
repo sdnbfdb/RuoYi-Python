@@ -21,6 +21,7 @@ from knowledge.knowledge import (
 )
 from layer.user.organization import OrganizationManager
 from old.api_call import call_api, call_api_with_tools
+from agent.react_agent import react_loop
 from old.phone.link import (
     send_to_connected_user,
     register_connected_user,
@@ -1414,10 +1415,10 @@ def api_chat():
                 if history_images:
                     print(f'[个人助手] 注入历史图片上下文, 图片数: {len(history_images)}')
             
-            response, conv_id = call_api_with_tools(
+            response, conv_id = react_loop(
                 llm_message, TOOLS_PERSONAL_ASSISTANT, TOOL_HANDLERS_PERSONAL, model=model,
                 save=True, conversation_id=conversation_id,
-                history_messages=history_messages, display_prompt=message
+                history_messages=history_messages, display_prompt=message, max_steps=5
             )
             
             # 兜底：检测AI是否编造了不存在的图片路径，若编造则自动调用 generate_image 生成真实图片
